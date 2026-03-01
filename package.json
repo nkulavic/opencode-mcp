@@ -1,9 +1,28 @@
 {
   "name": "opencode-mcp",
   "version": "0.1.0",
-  "description": "MCP server bridging OpenCode SDK to Claude Code",
+  "description": "MCP server bridging OpenCode SDK to Claude Code — fast AI coding agents with full repo access",
   "type": "module",
   "main": "dist/index.js",
+  "license": "MIT",
+  "author": "Nick Kulavic",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nkulavic/opencode-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "opencode",
+    "claude",
+    "claude-code",
+    "cerebras",
+    "ai-coding",
+    "model-context-protocol",
+    "coding-agent"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
