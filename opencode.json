@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "cerebras": {}
+  },
+  "agent": {
+    "coder": {
+      "description": "Fast coding agent powered by Cerebras gpt-oss-120b",
+      "mode": "primary",
+      "model": "cerebras/gpt-oss-120b",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true
+      }
+    }
+  }
+}
