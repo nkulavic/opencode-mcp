@@ -14,42 +14,50 @@ export function registerFindTool(server: McpServer) {
       dirs: z.enum(["true", "false"]).optional().describe("Include directories in results (files action only)"),
     },
     async ({ action, pattern, query, directory, dirs }) => {
-      const client = await getClient();
+      try {
+        const client = await getClient();
 
-      switch (action) {
-        case "text": {
-          if (!pattern) throw new Error("Pattern required for text search");
-          const results = await client.find.text({
-            query: {
-              pattern,
-              ...(directory ? { directory } : {}),
-            },
-          });
-          return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+        switch (action) {
+          case "text": {
+            if (!pattern) throw new Error("Pattern required for text search");
+            const results = await client.find.text({
+              query: {
+                pattern,
+                ...(directory ? { directory } : {}),
+              },
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+          }
+          case "files": {
+            if (!query) throw new Error("Query required for file search");
+            const results = await client.find.files({
+              query: {
+                query,
+                ...(directory ? { directory } : {}),
+                ...(dirs ? { dirs } : {}),
+              },
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+          }
+          case "symbols": {
+            if (!query) throw new Error("Query required for symbol search");
+            const results = await client.find.symbols({
+              query: {
+                query,
+                ...(directory ? { directory } : {}),
+              },
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+          }
+          default:
+            throw new Error(`Unknown action: ${action}`);
         }
-        case "files": {
-          if (!query) throw new Error("Query required for file search");
-          const results = await client.find.files({
-            query: {
-              query,
-              ...(directory ? { directory } : {}),
-              ...(dirs ? { dirs } : {}),
-            },
-          });
-          return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
-        }
-        case "symbols": {
-          if (!query) throw new Error("Query required for symbol search");
-          const results = await client.find.symbols({
-            query: {
-              query,
-              ...(directory ? { directory } : {}),
-            },
-          });
-          return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
-        }
-        default:
-          throw new Error(`Unknown action: ${action}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
       }
     }
   );

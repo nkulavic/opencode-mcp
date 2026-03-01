@@ -11,20 +11,28 @@ export function registerFileTool(server: McpServer) {
       path: z.string().optional().describe("File path (required for read)"),
     },
     async ({ action, path }) => {
-      const client = await getClient();
+      try {
+        const client = await getClient();
 
-      switch (action) {
-        case "read": {
-          if (!path) throw new Error("Path required for read");
-          const file = await client.file.read({ query: { path } });
-          return { content: [{ type: "text" as const, text: JSON.stringify(file) }] };
+        switch (action) {
+          case "read": {
+            if (!path) throw new Error("Path required for read");
+            const file = await client.file.read({ query: { path } });
+            return { content: [{ type: "text" as const, text: JSON.stringify(file) }] };
+          }
+          case "status": {
+            const files = await client.file.status();
+            return { content: [{ type: "text" as const, text: JSON.stringify(files) }] };
+          }
+          default:
+            throw new Error(`Unknown action: ${action}`);
         }
-        case "status": {
-          const files = await client.file.status();
-          return { content: [{ type: "text" as const, text: JSON.stringify(files) }] };
-        }
-        default:
-          throw new Error(`Unknown action: ${action}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
       }
     }
   );

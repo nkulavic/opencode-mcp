@@ -1,17 +1,16 @@
-import { createOpencode, createOpencodeClient } from "@opencode-ai/sdk";
+import { createOpencode } from "@opencode-ai/sdk";
 
-let clientInstance: Awaited<ReturnType<typeof createOpencode>>["client"] | null = null;
+type Client = Awaited<ReturnType<typeof createOpencode>>["client"];
+let clientPromise: Promise<Client> | null = null;
 
-export async function getClient() {
-  if (clientInstance) return clientInstance;
-
-  const { client } = await createOpencode({
-    hostname: "127.0.0.1",
-    port: 4096,
-  });
-
-  clientInstance = client;
-  return client;
+export function getClient(): Promise<Client> {
+  if (!clientPromise) {
+    clientPromise = createOpencode({
+      hostname: "127.0.0.1",
+      port: 4096,
+    }).then(({ client }) => client);
+  }
+  return clientPromise;
 }
 
-export type OpenCodeClient = Awaited<ReturnType<typeof getClient>>;
+export type OpenCodeClient = Client;

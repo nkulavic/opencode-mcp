@@ -10,19 +10,27 @@ export function registerConfigTool(server: McpServer) {
       action: z.enum(["get", "providers"]),
     },
     async ({ action }) => {
-      const client = await getClient();
+      try {
+        const client = await getClient();
 
-      switch (action) {
-        case "get": {
-          const config = await client.config.get();
-          return { content: [{ type: "text" as const, text: JSON.stringify(config) }] };
+        switch (action) {
+          case "get": {
+            const config = await client.config.get();
+            return { content: [{ type: "text" as const, text: JSON.stringify(config) }] };
+          }
+          case "providers": {
+            const providers = await client.config.providers();
+            return { content: [{ type: "text" as const, text: JSON.stringify(providers) }] };
+          }
+          default:
+            throw new Error(`Unknown action: ${action}`);
         }
-        case "providers": {
-          const providers = await client.config.providers();
-          return { content: [{ type: "text" as const, text: JSON.stringify(providers) }] };
-        }
-        default:
-          throw new Error(`Unknown action: ${action}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          isError: true,
+        };
       }
     }
   );
