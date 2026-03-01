@@ -5,7 +5,7 @@ import { getClient } from "../client.js";
 export function registerMessageTool(server: McpServer) {
   server.tool(
     "opencode_message",
-    "Read messages from an OpenCode session. Actions: list (all messages), get (single message)",
+    "Read the conversation history from an OpenCode session. Use 'list' AFTER a prompt completes to see what the agent did — its reasoning, tool calls, and code changes. Use 'get' for a specific message. Essential for reviewing the agent's work before accepting changes.",
     {
       action: z.enum(["list", "get"]),
       sessionId: z.string().describe("Session ID"),

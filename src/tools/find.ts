@@ -5,7 +5,7 @@ import { getClient } from "../client.js";
 export function registerFindTool(server: McpServer) {
   server.tool(
     "opencode_find",
-    "Search the codebase. Actions: text (search file contents), files (search file names), symbols (search code symbols)",
+    "Search the codebase through OpenCode. Use 'text' to grep file contents, 'files' to find files by name, 'symbols' to find code symbols (functions, classes, etc). Useful for understanding the codebase before sending tasks to the agent.",
     {
       action: z.enum(["text", "files", "symbols"]),
       pattern: z.string().optional().describe("Search pattern (required for text)"),

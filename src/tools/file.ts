@@ -5,7 +5,7 @@ import { getClient } from "../client.js";
 export function registerFileTool(server: McpServer) {
   server.tool(
     "opencode_file",
-    "Read files and check file status. Actions: read (file content), status (changed files like git status)",
+    "Check what files the OpenCode agent changed. Use 'status' AFTER a prompt to see which files were created/modified (like git status). Use 'read' to inspect specific file contents. This is your primary review tool — always check status after the agent writes code.",
     {
       action: z.enum(["read", "status"]),
       path: z.string().optional().describe("File path (required for read)"),

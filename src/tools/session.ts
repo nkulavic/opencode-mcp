@@ -5,7 +5,7 @@ import { getClient } from "../client.js";
 export function registerSessionTool(server: McpServer) {
   server.tool(
     "opencode_session",
-    "Manage OpenCode sessions. Actions: create, get, list, children, update, delete, init, abort, share, unshare, summarize, revert, unrevert, prompt, command, shell",
+    "Manage OpenCode coding agent sessions. START HERE: use action 'create' to get a session ID, then 'prompt' to send coding tasks. The agent (gpt-oss-120b) has full file access and generates code at 3000 tok/s. Use 'revert' to undo bad changes, 'abort' to stop a running task, 'summarize' to get a session recap. Always reuse session IDs for related work — the agent retains context across prompts.",
     {
       action: z.enum([
         "create", "get", "list", "children", "update", "delete",
