@@ -1,5 +1,34 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { getClient } from "../client.js";
 
 export function registerMessageTool(server: McpServer) {
-  // TODO: implement
+  server.tool(
+    "opencode_message",
+    "Read messages from an OpenCode session. Actions: list (all messages), get (single message)",
+    {
+      action: z.enum(["list", "get"]),
+      sessionId: z.string().describe("Session ID"),
+      messageId: z.string().optional().describe("Message ID (required for get)"),
+    },
+    async ({ action, sessionId, messageId }) => {
+      const client = await getClient();
+
+      switch (action) {
+        case "list": {
+          const messages = await client.session.messages({ path: { id: sessionId } });
+          return { content: [{ type: "text" as const, text: JSON.stringify(messages) }] };
+        }
+        case "get": {
+          if (!messageId) throw new Error("Message ID required for get");
+          const message = await client.session.message({
+            path: { id: sessionId, messageID: messageId },
+          });
+          return { content: [{ type: "text" as const, text: JSON.stringify(message) }] };
+        }
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+    }
+  );
 }
