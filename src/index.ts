@@ -14,13 +14,13 @@ const server = new McpServer(
     version: "0.1.0",
   },
   {
-    instructions: `# OpenCode MCP — Cerebras-Powered Coding Agent
+    instructions: `# OpenCode MCP — AI Coding Agent
 
-You have access to a fast coding agent powered by Cerebras gpt-oss-120b running at 3,000 tokens/sec through OpenCode. Use it to delegate code generation tasks while you focus on planning, reviewing, and orchestrating.
+You have access to a fast coding agent through OpenCode. The model and provider are configured in the project's opencode.json — this MCP is model-agnostic. Use it to delegate code generation tasks while you focus on planning, reviewing, and orchestrating.
 
 ## Architecture
 - YOU (Claude) = orchestrator + code reviewer. You plan, break down tasks, and review all code.
-- OpenCode (gpt-oss-120b) = fast code generator. It has full repo access (read/write/edit/bash) and generates code at 3,000 tok/s.
+- OpenCode = fast code generator. It has full repo access (read/write/edit/bash) and runs whatever model is configured.
 - NO CODE SHIPS WITHOUT YOUR REVIEW. Always check what OpenCode wrote before moving on.
 
 ## Workflow
