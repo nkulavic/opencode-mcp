@@ -1,0 +1,11 @@
+{
+  "eval_id": 5,
+  "run_type": "with_skill",
+  "expectations": [
+    { "text": "Delegates test writing to OpenCode", "passed": true, "evidence": "'Decision: Delegate to OpenCode' — identifies tests as 'perfect delegation target' per skill" },
+    { "text": "Creates an OpenCode session", "passed": true, "evidence": "Step 2: opencode_session action='create'" },
+    { "text": "References the source middleware file", "passed": true, "evidence": "Step 1: Read src/middleware/auth.ts; prompt includes '[insert actual function signature]'" },
+    { "text": "Covers all 4 edge cases", "passed": true, "evidence": "Prompt explicitly lists: valid token, missing token, expired token, invalid signature" },
+    { "text": "Reviews for completeness and correctness", "passed": true, "evidence": "6-point review: mock correctness, coverage, req/res shape, TypeScript types, no real secrets, test isolation" }
+  ]
+}

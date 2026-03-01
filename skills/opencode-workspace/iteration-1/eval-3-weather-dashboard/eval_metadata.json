@@ -1,0 +1,43 @@
+{
+  "eval_id": 3,
+  "eval_name": "weather-dashboard-build",
+  "skill": "opencode-build",
+  "prompt": "Build me a weather dashboard that shows current conditions, a 5-day forecast with icons, a temperature line chart, and a search bar for cities. Make it look really polished.",
+  "assertions": [
+    {
+      "id": "writes_spec_first",
+      "text": "Writes a detailed specification before sending anything to OpenCode (Phase 1)",
+      "type": "behavioral"
+    },
+    {
+      "id": "spec_includes_file_path",
+      "text": "The spec includes an exact output file path",
+      "type": "quality"
+    },
+    {
+      "id": "spec_includes_ui_details",
+      "text": "The spec includes specific UI details: layout structure, color scheme, responsive breakpoints, or interactions",
+      "type": "quality"
+    },
+    {
+      "id": "uses_cerebras_model",
+      "text": "Plans to use gpt-oss-120b on Cerebras for the draft generation",
+      "type": "behavioral"
+    },
+    {
+      "id": "reviews_for_bugs",
+      "text": "Plans a thorough review phase looking for specific bug categories (operator precedence, XSS, missing accessibility, etc.)",
+      "type": "behavioral"
+    },
+    {
+      "id": "polishes_output",
+      "text": "Plans a polish phase that goes beyond bug fixes to improve UX quality (animations, transitions, responsive design, accessibility)",
+      "type": "behavioral"
+    },
+    {
+      "id": "reports_metrics",
+      "text": "Plans to report generation time and bugs found to the user at delivery",
+      "type": "quality"
+    }
+  ]
+}

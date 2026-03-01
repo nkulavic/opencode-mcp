@@ -1,0 +1,152 @@
+{
+  "skill_name": "opencode + opencode-build",
+  "iteration": 1,
+  "timestamp": "2026-03-01T23:45:00Z",
+  "configurations": [
+    {
+      "name": "with_skill",
+      "label": "With Skill",
+      "evals": [
+        {
+          "eval_id": 1,
+          "eval_name": "file-upload-endpoint",
+          "skill": "opencode",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "tokens": 14136,
+          "duration_seconds": 62.4
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "button-color-change",
+          "skill": "opencode",
+          "pass_rate": 1.0,
+          "passed": 4,
+          "total": 4,
+          "tokens": 12773,
+          "duration_seconds": 26.6
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "weather-dashboard-build",
+          "skill": "opencode-build",
+          "pass_rate": 1.0,
+          "passed": 7,
+          "total": 7,
+          "tokens": 16525,
+          "duration_seconds": 98.8
+        },
+        {
+          "eval_id": 4,
+          "eval_name": "markdown-editor-build",
+          "skill": "opencode-build",
+          "pass_rate": 1.0,
+          "passed": 6,
+          "total": 6,
+          "tokens": 21171,
+          "duration_seconds": 240.1
+        },
+        {
+          "eval_id": 5,
+          "eval_name": "auth-middleware-tests",
+          "skill": "opencode",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "tokens": 14055,
+          "duration_seconds": 53.4
+        }
+      ],
+      "aggregate": {
+        "mean_pass_rate": 1.0,
+        "total_assertions_passed": 27,
+        "total_assertions": 27,
+        "mean_tokens": 15732,
+        "mean_duration_seconds": 96.3
+      }
+    },
+    {
+      "name": "without_skill",
+      "label": "Without Skill (Baseline)",
+      "evals": [
+        {
+          "eval_id": 1,
+          "eval_name": "file-upload-endpoint",
+          "skill": "opencode",
+          "pass_rate": 0.8,
+          "passed": 4,
+          "total": 5,
+          "tokens": 14832,
+          "duration_seconds": 76.1
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "button-color-change",
+          "skill": "opencode",
+          "pass_rate": 1.0,
+          "passed": 4,
+          "total": 4,
+          "tokens": 12597,
+          "duration_seconds": 29.6
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "weather-dashboard-build",
+          "skill": "opencode-build",
+          "pass_rate": 0.0,
+          "passed": 0,
+          "total": 7,
+          "tokens": 15017,
+          "duration_seconds": 78.4
+        },
+        {
+          "eval_id": 4,
+          "eval_name": "markdown-editor-build",
+          "skill": "opencode-build",
+          "pass_rate": 0.0,
+          "passed": 0,
+          "total": 6,
+          "tokens": 18290,
+          "duration_seconds": 138.7
+        },
+        {
+          "eval_id": 5,
+          "eval_name": "auth-middleware-tests",
+          "skill": "opencode",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "tokens": 13761,
+          "duration_seconds": 60.0
+        }
+      ],
+      "aggregate": {
+        "mean_pass_rate": 0.56,
+        "total_assertions_passed": 13,
+        "total_assertions": 27,
+        "mean_tokens": 14899,
+        "mean_duration_seconds": 76.6
+      }
+    }
+  ],
+  "delta": {
+    "pass_rate_improvement": "+44%",
+    "assertions_gained": 14,
+    "mean_token_delta": "+833 (5.6% more)",
+    "mean_duration_delta": "+19.7s (25.7% slower)"
+  },
+  "analysis": {
+    "key_findings": [
+      "The opencode skill correctly guides delegation decisions: delegates large tasks (evals 1, 5) and avoids delegating tiny edits (eval 2). Without the skill, behavior is identical for these cases — Claude independently makes the same choices.",
+      "The opencode-build skill provides massive differentiation on build tasks (evals 3, 4). Without the skill, Claude writes everything directly and misses the entire SPEC→DRAFT→REVIEW→POLISH pipeline. With the skill, it follows the structured 4-phase workflow.",
+      "The opencode-build skill's review phase is notably more thorough with the skill: 13-point bug checklist for eval 3, 11 review categories for eval 4. Without the skill, review is ad-hoc.",
+      "The opencode skill's security review guidance adds value: eval 1 with-skill explicitly checks path traversal and file type bypass; without-skill misses these.",
+      "Eval 2 (button color change) is non-discriminating — both with and without skill produce identical behavior. This is expected and correct."
+    ],
+    "non_discriminating_assertions": [
+      "Eval 2: All 4 assertions pass in both configurations — the task is too simple to differentiate"
+    ],
+    "skill_value_proposition": "The opencode skill adds security review depth. The opencode-build skill transforms the entire workflow from 'write it yourself' to 'generate fast, review thoroughly, polish to production quality' — this is where the skills deliver the most value."
+  }
+}

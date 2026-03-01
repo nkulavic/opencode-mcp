@@ -1,0 +1,13 @@
+{
+  "eval_id": 3,
+  "run_type": "with_skill",
+  "expectations": [
+    { "text": "Writes spec first (Phase 1)", "passed": true, "evidence": "Extensive Phase 1 spec covering all dimensions: file path, API, data requirements, UI, interactions" },
+    { "text": "Spec includes exact file path", "passed": true, "evidence": "Explicit file path in spec header" },
+    { "text": "Spec includes UI details", "passed": true, "evidence": "CSS custom properties, glassmorphism, Inter font, animated gradient, responsive grid, skeleton loaders" },
+    { "text": "Uses gpt-oss-120b on Cerebras", "passed": true, "evidence": "model='gpt-oss-120b' provider='cerebras'" },
+    { "text": "Reviews for specific bug categories", "passed": true, "evidence": "13-point checklist: operator precedence, null checks, date timezone, XSS, function hoisting, keyboard nav, etc." },
+    { "text": "Plans polish phase", "passed": true, "evidence": "Option A (fix prompts) and Option B (manual CSS rewrite) with specific examples" },
+    { "text": "Reports generation time and bugs found", "passed": true, "evidence": "Delivery report: '~2 seconds', 7 specific bugs listed with fixes" }
+  ]
+}

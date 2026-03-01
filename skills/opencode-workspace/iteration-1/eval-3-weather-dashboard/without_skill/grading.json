@@ -1,0 +1,13 @@
+{
+  "eval_id": 3,
+  "run_type": "without_skill",
+  "expectations": [
+    { "text": "Writes spec first (Phase 1)", "passed": false, "evidence": "No spec phase — goes directly to implementation plan with Write/Edit tool calls" },
+    { "text": "Spec includes exact file path", "passed": false, "evidence": "No formal spec; mentions 'index.html' but not as a structured spec to send to OpenCode" },
+    { "text": "Spec includes UI details", "passed": false, "evidence": "Describes UI details inline but not as a spec for delegation" },
+    { "text": "Uses gpt-oss-120b on Cerebras", "passed": false, "evidence": "Does not use OpenCode at all — writes everything directly" },
+    { "text": "Reviews for specific bug categories", "passed": false, "evidence": "Has a 'Verify and polish' step but no structured bug review phase" },
+    { "text": "Plans polish phase", "passed": false, "evidence": "Mentions 'final polish: loading spinner animation, error handling toast' but no structured polish phase" },
+    { "text": "Reports generation time and bugs found", "passed": false, "evidence": "No delivery report with metrics — just a feature list" }
+  ]
+}

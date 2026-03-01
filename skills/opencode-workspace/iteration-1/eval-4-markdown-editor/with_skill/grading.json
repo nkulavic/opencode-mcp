@@ -1,0 +1,12 @@
+{
+  "eval_id": 4,
+  "run_type": "with_skill",
+  "expectations": [
+    { "text": "Writes spec first (Phase 1)", "passed": true, "evidence": "Extremely detailed Phase 1 spec covering markdown parsing, syntax highlighting, layout, export, persistence, keyboard shortcuts, accessibility, visual design, animations, and empty state" },
+    { "text": "Spec mentions split-pane layout", "passed": true, "evidence": "'Full-viewport split: left 50% editor, right 50% preview, separated by a draggable splitter'" },
+    { "text": "Spec mentions export-to-HTML", "passed": true, "evidence": "Detailed export section with Blob URL, filename slugification, and complete HTML5 document structure" },
+    { "text": "Uses gpt-oss-120b on Cerebras", "passed": true, "evidence": "model: 'gpt-oss-120b', provider: 'cerebras'" },
+    { "text": "Reviews for specific bug categories", "passed": true, "evidence": "11 review categories: XSS, operator precedence, null checks, function hoisting, template literal injection, keyboard nav, empty state, hardcoded colors, missing animations, scroll sync, line numbers, theme toggle" },
+    { "text": "Plans polish phase", "passed": true, "evidence": "Fix via OpenCode prompts + rewrite sections (regex chain, export template, theme init, tab handler) + final additions (aria-live, tooltips, word count)" }
+  ]
+}

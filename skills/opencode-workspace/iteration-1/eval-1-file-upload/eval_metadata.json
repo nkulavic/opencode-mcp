@@ -1,0 +1,33 @@
+{
+  "eval_id": 1,
+  "eval_name": "file-upload-endpoint",
+  "skill": "opencode",
+  "prompt": "I need to add a new REST endpoint to my Express app that handles file uploads. It should accept multipart/form-data, validate file size (max 5MB) and type (only images), store to disk, and return the file URL. Put it in src/routes/upload.ts",
+  "assertions": [
+    {
+      "id": "delegates_to_opencode",
+      "text": "Chooses to delegate the task to OpenCode rather than writing the code directly",
+      "type": "behavioral"
+    },
+    {
+      "id": "creates_session",
+      "text": "Creates an OpenCode session before sending a prompt",
+      "type": "behavioral"
+    },
+    {
+      "id": "specific_prompt",
+      "text": "Writes a detailed, specific prompt mentioning file path, multer/multipart handling, 5MB limit, image validation, and disk storage",
+      "type": "quality"
+    },
+    {
+      "id": "reviews_output",
+      "text": "Plans to review the generated code after OpenCode produces it, checking for security issues",
+      "type": "behavioral"
+    },
+    {
+      "id": "mentions_security_review",
+      "text": "Mentions checking for path traversal, file type validation bypass, or other security concerns during review",
+      "type": "quality"
+    }
+  ]
+}

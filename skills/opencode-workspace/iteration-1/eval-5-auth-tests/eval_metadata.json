@@ -1,0 +1,33 @@
+{
+  "eval_id": 5,
+  "eval_name": "auth-middleware-tests",
+  "skill": "opencode",
+  "prompt": "I need to write unit tests for my authentication middleware. The middleware checks JWT tokens, handles expired tokens, missing tokens, and invalid signatures. The middleware is at src/middleware/auth.ts and uses jsonwebtoken.",
+  "assertions": [
+    {
+      "id": "delegates_to_opencode",
+      "text": "Chooses to delegate test writing to OpenCode rather than writing tests directly",
+      "type": "behavioral"
+    },
+    {
+      "id": "creates_session",
+      "text": "Creates an OpenCode session before sending a prompt",
+      "type": "behavioral"
+    },
+    {
+      "id": "references_source_file",
+      "text": "The prompt to OpenCode references the source middleware file (src/middleware/auth.ts) so the agent can read it",
+      "type": "quality"
+    },
+    {
+      "id": "covers_edge_cases",
+      "text": "The prompt or review plan mentions all 4 edge cases: valid token, expired token, missing token, invalid signature",
+      "type": "quality"
+    },
+    {
+      "id": "reviews_completeness",
+      "text": "Plans to review generated tests for completeness and correctness, not just accept them blindly",
+      "type": "behavioral"
+    }
+  ]
+}

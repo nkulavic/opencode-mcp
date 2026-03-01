@@ -1,0 +1,12 @@
+{
+  "eval_id": 4,
+  "run_type": "without_skill",
+  "expectations": [
+    { "text": "Writes spec first (Phase 1)", "passed": false, "evidence": "No spec phase — jumps to architecture decisions and implementation sequence" },
+    { "text": "Spec mentions split-pane layout", "passed": false, "evidence": "Mentions 'two-panel split view' but as architecture, not a spec for delegation" },
+    { "text": "Spec mentions export-to-HTML", "passed": false, "evidence": "Mentions export but not as a structured spec" },
+    { "text": "Uses gpt-oss-120b on Cerebras", "passed": false, "evidence": "Does not use OpenCode — writes everything directly via Write/Read/Edit" },
+    { "text": "Reviews for specific bug categories", "passed": false, "evidence": "Has verification steps but no structured bug review phase with categories" },
+    { "text": "Plans polish phase", "passed": false, "evidence": "No structured polish phase — mentions 'verify and polish' but minimal" }
+  ]
+}

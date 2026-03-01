@@ -1,0 +1,38 @@
+{
+  "eval_id": 4,
+  "eval_name": "markdown-editor-build",
+  "skill": "opencode-build",
+  "prompt": "Create a markdown editor with live preview, syntax highlighting, and the ability to export to HTML. Single file, no dependencies.",
+  "assertions": [
+    {
+      "id": "writes_spec_first",
+      "text": "Writes a detailed specification before sending anything to OpenCode (Phase 1)",
+      "type": "behavioral"
+    },
+    {
+      "id": "spec_mentions_split_pane",
+      "text": "The spec mentions a split-pane or side-by-side layout (textarea + preview)",
+      "type": "quality"
+    },
+    {
+      "id": "spec_mentions_export",
+      "text": "The spec includes export-to-HTML functionality",
+      "type": "quality"
+    },
+    {
+      "id": "uses_cerebras_model",
+      "text": "Plans to use gpt-oss-120b on Cerebras for the draft generation",
+      "type": "behavioral"
+    },
+    {
+      "id": "reviews_for_bugs",
+      "text": "Plans a thorough review phase with specific bug categories to check",
+      "type": "behavioral"
+    },
+    {
+      "id": "polishes_output",
+      "text": "Plans a polish phase improving UX beyond the draft quality",
+      "type": "behavioral"
+    }
+  ]
+}

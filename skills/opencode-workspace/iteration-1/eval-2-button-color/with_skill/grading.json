@@ -1,0 +1,10 @@
+{
+  "eval_id": 2,
+  "run_type": "with_skill",
+  "expectations": [
+    { "text": "Does not delegate to OpenCode", "passed": true, "evidence": "Explicitly says 'Decision: Write Directly (Do NOT Delegate to OpenCode)' and quotes skill guidance" },
+    { "text": "Reads file before editing", "passed": true, "evidence": "Step 1: Read with offset 40, limit 15" },
+    { "text": "Uses Edit tool", "passed": true, "evidence": "Step 2: Edit tool with old_string/new_string" },
+    { "text": "Minimal tool calls (2-3)", "passed": true, "evidence": "'Total tool calls: 2 (Read + Edit)'" }
+  ]
+}

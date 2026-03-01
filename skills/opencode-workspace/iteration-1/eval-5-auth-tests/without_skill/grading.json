@@ -1,0 +1,11 @@
+{
+  "eval_id": 5,
+  "run_type": "without_skill",
+  "expectations": [
+    { "text": "Delegates test writing to OpenCode", "passed": true, "evidence": "'I would delegate the test generation to OpenCode' — independently decides to delegate" },
+    { "text": "Creates an OpenCode session", "passed": true, "evidence": "Step 4: opencode_session (create)" },
+    { "text": "References the source middleware file", "passed": true, "evidence": "Step 1: Read auth.ts, then includes full contents in the prompt" },
+    { "text": "Covers all 4 edge cases", "passed": true, "evidence": "Prompt covers valid, expired, missing, invalid signature + additional edge cases" },
+    { "text": "Reviews for completeness and correctness", "passed": true, "evidence": "Detailed review: mock correctness, coverage, req/res shape, assertions, no I/O" }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "eval_id": 1,
+  "run_type": "without_skill",
+  "expectations": [
+    { "text": "Chooses to delegate to OpenCode", "passed": true, "evidence": "States 'Decision: Delegate to OpenCode MCP' — independently arrives at delegation" },
+    { "text": "Creates an OpenCode session before prompting", "passed": true, "evidence": "Step 8: opencode_session({ action: 'create' })" },
+    { "text": "Writes a specific prompt with file path, multer, 5MB, images, disk storage", "passed": true, "evidence": "12-point prompt specifying all requirements" },
+    { "text": "Plans to review generated code", "passed": true, "evidence": "Detailed review checklist covering multer config, file filter, error handler, etc." },
+    { "text": "Mentions security review (path traversal, file type bypass)", "passed": false, "evidence": "Reviews correctness but does not explicitly mention path traversal or file type bypass as security concerns" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "eval_id": 2,
+  "eval_name": "button-color-change",
+  "skill": "opencode",
+  "prompt": "Change the button color from blue to green on line 45 of src/components/Header.tsx",
+  "assertions": [
+    {
+      "id": "does_not_delegate",
+      "text": "Chooses to write directly using Read+Edit rather than delegating to OpenCode",
+      "type": "behavioral"
+    },
+    {
+      "id": "reads_file_first",
+      "text": "Plans to read the file before editing to understand the current color format",
+      "type": "behavioral"
+    },
+    {
+      "id": "uses_edit_tool",
+      "text": "Uses the Edit tool for the change, not the Write tool or OpenCode",
+      "type": "behavioral"
+    },
+    {
+      "id": "minimal_tool_calls",
+      "text": "Total planned tool calls is 2-3 (Read + Edit + optional verify), not more",
+      "type": "efficiency"
+    }
+  ]
+}

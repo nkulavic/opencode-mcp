@@ -1,0 +1,11 @@
+{
+  "eval_id": 1,
+  "run_type": "with_skill",
+  "expectations": [
+    { "text": "Chooses to delegate to OpenCode", "passed": true, "evidence": "Explicitly states 'Decision: Delegate to OpenCode' with clear reasoning about >30 lines, new file scaffolding" },
+    { "text": "Creates an OpenCode session before prompting", "passed": true, "evidence": "Step 1: opencode_session action='create'" },
+    { "text": "Writes a specific prompt with file path, multer, 5MB, images, disk storage", "passed": true, "evidence": "12-point prompt specifying exact path, validation rules, error codes, response shape, and style conventions" },
+    { "text": "Plans to review generated code", "passed": true, "evidence": "Detailed review section with security, correctness, TypeScript, and operational issue categories" },
+    { "text": "Mentions security review (path traversal, file type bypass)", "passed": true, "evidence": "Explicitly checks 'File type bypass', 'Path traversal', 'Unrestricted file serving'" }
+  ]
+}
