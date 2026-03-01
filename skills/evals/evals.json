@@ -1,0 +1,40 @@
+{
+  "skill_name": "opencode + opencode-build",
+  "evals": [
+    {
+      "id": 1,
+      "skill": "opencode",
+      "prompt": "I need to add a new REST endpoint to my Express app that handles file uploads. It should accept multipart/form-data, validate file size (max 5MB) and type (only images), store to disk, and return the file URL. Put it in src/routes/upload.ts",
+      "expected_output": "Claude should delegate this to OpenCode since it's a substantial new file (~50+ lines). Should create a session, send a specific prompt with the file path and requirements, then review the generated code for security issues (path traversal, file type validation bypass, etc.).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "skill": "opencode",
+      "prompt": "Change the button color from blue to green on line 45 of src/components/Header.tsx",
+      "expected_output": "Claude should NOT delegate this — it's a tiny edit (1 line). Should use the Edit tool directly. The skill should guide Claude to recognize this as too small to delegate.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "skill": "opencode-build",
+      "prompt": "Build me a weather dashboard that shows current conditions, a 5-day forecast with icons, a temperature line chart, and a search bar for cities. Make it look really polished.",
+      "expected_output": "Claude should run the full pipeline: 1) Write a detailed spec, 2) Send to OpenCode/gpt-oss-120b, 3) Read and review the generated code thoroughly, 4) Identify bugs and UX gaps, 5) Polish to production quality with proper CSS, animations, accessibility. Should report what was built, generation time, and bugs found.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "skill": "opencode-build",
+      "prompt": "Create a markdown editor with live preview, syntax highlighting, and the ability to export to HTML. Single file, no dependencies.",
+      "expected_output": "Full pipeline execution. Spec should mention: split-pane layout, textarea on left, rendered preview on right, toolbar with formatting buttons, code block highlighting via regex, export button. Draft from OpenCode, then Claude polishes with proper typography, keyboard shortcuts, responsive layout.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "skill": "opencode",
+      "prompt": "I need to write unit tests for my authentication middleware. The middleware checks JWT tokens, handles expired tokens, missing tokens, and invalid signatures. The middleware is at src/middleware/auth.ts and uses jsonwebtoken.",
+      "expected_output": "Claude should delegate test writing to OpenCode — tests are perfect delegation targets (boilerplate-heavy, well-defined structure). Should create a session, send a prompt referencing the auth middleware file, then review the generated tests for completeness (all edge cases covered) and correctness.",
+      "files": []
+    }
+  ]
+}

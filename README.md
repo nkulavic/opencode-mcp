@@ -165,12 +165,18 @@ This lets Claude pick the right model for each task: a fast model for boilerplat
 git clone https://github.com/nkulavic/opencode-mcp.git
 cd opencode-mcp
 cp .env.example .env   # Add your API key
-npm run setup          # Installs deps (including OpenCode CLI), builds, and verifies
+npm run setup          # Installs deps, builds, and prompts to install Claude Code skills
 ```
 
-`npm install` automatically downloads the OpenCode CLI binary for your platform via the `opencode-ai` npm package. No separate install needed.
+`npm run setup` does everything:
+1. Installs dependencies (including the OpenCode CLI binary for your platform)
+2. Builds the TypeScript
+3. Verifies your environment (OpenCode, .env, build)
+4. Prompts you to install Claude Code skills (`/opencode` and `/opencode-build`)
 
 > **Already have OpenCode installed globally?** That works too. `start.sh` checks `node_modules/.bin/opencode` first, then falls back to your global install.
+
+> **Install skills separately?** Run `npm run install-skills` anytime to add the slash commands to Claude Code.
 
 ### Add to Claude Code
 
@@ -420,8 +426,12 @@ opencode-mcp/
 │       ├── mcp-server.ts     # MCP server management
 │       ├── pty.ts            # Terminal sessions
 │       └── instructions.ts   # Static workflow guide
+├── skills/
+│   ├── opencode/SKILL.md     # Delegation guidance skill
+│   └── opencode-build/SKILL.md  # Team build pipeline skill
 ├── scripts/
-│   └── postinstall.mjs       # Post-install verification
+│   ├── postinstall.mjs       # Post-install verification
+│   └── install-skills.mjs    # Interactive skill installer
 ├── examples/                  # Demo apps built with the tool
 ├── start.sh                   # Startup script (manages opencode serve lifecycle)
 ├── opencode.json              # OpenCode agent/provider config
@@ -436,6 +446,30 @@ Every tool file follows the same pattern:
 - Define a Zod schema with an `action` enum
 - Switch on action, call the SDK, return JSON
 - Wrap errors with `isError: true`
+
+## Claude Code Skills
+
+The project includes two optional skills (slash commands) that teach Claude how to use the MCP tools effectively. Install them during `npm run setup` or anytime with `npm run install-skills`.
+
+### `/opencode` — Delegation Guidance
+
+An always-on advisor that helps Claude decide when to delegate code generation to OpenCode vs write directly. It provides:
+
+- **Decision heuristic** — delegate when creating new files, writing boilerplate, generating tests, or scaffolding features (>30 lines). Write directly for small edits, config changes, or security-critical code.
+- **Prompt engineering** — how to write specific prompts that produce good output from fast models.
+- **Review checklist** — what to look for in generated code (operator precedence bugs, XSS, missing accessibility, etc.).
+- **Session management** — reuse sessions, fork for alternatives, summarize long sessions.
+
+### `/opencode-build` — Team Build Pipeline
+
+Runs the full "fast draft + Claude polish" workflow end to end:
+
+1. **Spec** — Claude writes a detailed specification from your description
+2. **Draft** — Sends to gpt-oss-120b on Cerebras (~2s generation)
+3. **Review** — Claude reads every line, identifies bugs, security issues, UX gaps
+4. **Polish** — Claude rewrites to production quality (animations, accessibility, responsive design)
+
+Just describe what you want and the pipeline handles the rest.
 
 ## Development
 

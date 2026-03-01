@@ -64,16 +64,32 @@ if (distExists) {
   console.log(dim("    npm run build"));
 }
 
-// 4. Summary
+// 4. Check skills
+const claudeSkillsDir = join(process.env.HOME || "~", ".claude", "skills");
+const skillsInstalled = existsSync(join(claudeSkillsDir, "opencode", "SKILL.md")) &&
+                        existsSync(join(claudeSkillsDir, "opencode-build", "SKILL.md"));
+if (skillsInstalled) {
+  console.log(green("  ✓") + " Claude Code skills installed");
+} else {
+  console.log(yellow("  !") + " Claude Code skills not installed — run:");
+  console.log(dim("    npm run install-skills"));
+}
+
+// 5. Summary
 console.log("");
 if (opencodeFound && envExists && distExists) {
   console.log(green("  Ready to go!") + " Add to Claude Code:");
   console.log(dim(`    { "mcpServers": { "opencode": { "command": "${join(root, "start.sh")}" } } }`));
+  if (!skillsInstalled) {
+    console.log("");
+    console.log(dim("  Optional: npm run install-skills  (adds /opencode and /opencode-build slash commands)"));
+  }
 } else {
   console.log(bold("  Next steps:"));
   let step = 1;
   if (!envExists) { console.log(dim(`    ${step++}. cp .env.example .env && add your API key`)); }
   if (!distExists) { console.log(dim(`    ${step++}. npm run build`)); }
-  console.log(dim(`    ${step}. Add start.sh to your Claude Code MCP config`));
+  console.log(dim(`    ${step++}. Add start.sh to your Claude Code MCP config`));
+  if (!skillsInstalled) { console.log(dim(`    ${step}. npm run install-skills  (optional — adds slash commands)`)); }
 }
 console.log("");
