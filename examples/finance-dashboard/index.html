@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinanceFlow -- Personal Finance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS Custom Properties
+   ============================================================ */
+:root {
+  /* Accent palette */
+  --primary: #6C5CE7;
+  --primary-glow: rgba(108, 92, 231, 0.35);
+  --secondary: #00CEC9;
+  --success: #00B894;
+  --warning: #FDCB6E;
+  --danger: #E17055;
+
+  /* Category colors */
+  --cat-food: #E17055;
+  --cat-transport: #00CEC9;
+  --cat-entertainment: #FDCB6E;
+  --cat-bills: #6C5CE7;
+  --cat-shopping: #E84393;
+
+  /* Typography */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 0.2s;
+
+  /* Spacing */
+  --gap: 16px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+/* ---- Dark theme (default) ---- */
+[data-theme="dark"] {
+  --bg: #0F0E17;
+  --bg-secondary: #1A1929;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --text-primary: #FFFFFE;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --header-bg: linear-gradient(135deg, #1A1929 0%, #2D1B69 100%);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --ring-track: rgba(255, 255, 255, 0.08);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-text: rgba(255, 255, 255, 0.45);
+  --modal-bg: rgba(15, 14, 23, 0.8);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-focus: var(--primary);
+  --scrollbar-track: rgba(255,255,255,0.03);
+  --scrollbar-thumb: rgba(255,255,255,0.1);
+  --row-alt: rgba(255,255,255,0.02);
+  --row-hover: rgba(108, 92, 231, 0.08);
+}
+
+/* ---- Light theme ---- */
+[data-theme="light"] {
+  --bg: #F7F7FC;
+  --bg-secondary: #EEEEF5;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-hover: rgba(255, 255, 255, 0.95);
+  --surface-active: rgba(255, 255, 255, 1);
+  --border: rgba(0, 0, 0, 0.06);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --text-primary: #1A1929;
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --text-tertiary: rgba(0, 0, 0, 0.3);
+  --header-bg: linear-gradient(135deg, #EEEEF5 0%, #DDD5F3 100%);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.1);
+  --ring-track: rgba(0, 0, 0, 0.06);
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --chart-text: rgba(0, 0, 0, 0.4);
+  --modal-bg: rgba(247, 247, 252, 0.8);
+  --input-bg: rgba(0, 0, 0, 0.03);
+  --input-border: rgba(0, 0, 0, 0.1);
+  --input-focus: var(--primary);
+  --scrollbar-track: rgba(0,0,0,0.02);
+  --scrollbar-thumb: rgba(0,0,0,0.08);
+  --row-alt: rgba(0,0,0,0.015);
+  --row-hover: rgba(108, 92, 231, 0.06);
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--bg);
+  color: var(--text-primary);
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ============================================================
+   Typography
+   ============================================================ */
+h1 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+.header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: background var(--duration) var(--ease);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  box-shadow: 0 4px 12px var(--primary-glow);
+  font-weight: 700;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.header-title span {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Theme toggle (pill switch) ---- */
+.theme-toggle {
+  position: relative;
+  width: 64px;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-size: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.3s var(--ease);
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+[data-theme="light"] .theme-toggle::after {
+  transform: translateX(32px);
+}
+
+.theme-icon { z-index: 1; line-height: 1; }
+
+/* ============================================================
+   Summary Bar
+   ============================================================ */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+  padding: 24px 32px 0;
+}
+
+.summary-card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  transition: all var(--duration) var(--ease);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fadeInUp 0.5s var(--ease) forwards;
+}
+
+.summary-card:nth-child(1) { animation-delay: 0.05s; }
+.summary-card:nth-child(2) { animation-delay: 0.1s; }
+.summary-card:nth-child(3) { animation-delay: 0.15s; }
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--border-hover);
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.summary-value.budget { color: var(--primary); }
+.summary-value.spent { color: var(--danger); }
+.summary-value.remaining { color: var(--success); }
+
+.summary-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Dashboard Grid
+   ============================================================ */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  padding: 24px 32px 48px;
+}
+
+/* ---- Card base ---- */
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: all var(--duration) var(--ease);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fadeInUp 0.5s var(--ease) forwards;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--border-hover);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+/* Grid spans */
+.card--budget     { grid-column: span 2; animation-delay: 0.1s; }
+.card--txn        { grid-column: span 2; animation-delay: 0.15s; }
+.card--line       { grid-column: span 2; animation-delay: 0.2s; }
+.card--bar        { grid-column: span 2; animation-delay: 0.25s; }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn--primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.btn--primary:hover {
+  background: #7B6CF0;
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn--ghost:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+}
+
+.btn--danger:hover {
+  background: rgba(225, 112, 85, 0.1);
+}
+
+.btn--sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-xs);
+}
+
+.btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-xs);
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.btn--icon:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* ============================================================
+   Budget Rings
+   ============================================================ */
+.budget-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-ring {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.progress-ring svg {
+  width: 100px;
+  height: 100px;
+  transform: rotate(-90deg);
+}
+
+.progress-ring circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.ring-track { stroke: var(--ring-track); }
+
+.ring-value {
+  transition: stroke-dashoffset 1s var(--ease);
+}
+
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-percent {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.ring-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ring-amount {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   Transaction Table
+   ============================================================ */
+.txn-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+
+.txn-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.txn-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-tertiary);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 1;
+}
+
+.txn-table th:last-child { text-align: right; }
+
+.txn-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.txn-table tbody tr {
+  transition: background var(--duration) var(--ease);
+  animation: fadeInRow 0.3s var(--ease) both;
+}
+
+.txn-table tbody tr:nth-child(even) {
+  background: var(--row-alt);
+}
+
+.txn-table tbody tr:hover {
+  background: var(--row-hover);
+}
+
+.txn-table .col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.txn-table .col-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Category badge */
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cat-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.empty-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+/* ============================================================
+   Charts
+   ============================================================ */
+.chart-container {
+  position: relative;
+  width: 100%;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.chart-svg text {
+  font-family: var(--font);
+  fill: var(--chart-text);
+}
+
+.chart-gridline {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+/* Chart tooltip */
+.chart-tooltip {
+  position: absolute;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+}
+
+.chart-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chart-dot {
+  transition: r 0.15s ease;
+  cursor: pointer;
+}
+
+.chart-dot:hover { r: 6; }
+
+.bar-rect {
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.bar-rect:hover { opacity: 0.8; }
+
+/* ============================================================
+   Modal (Glassmorphism)
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s var(--ease), visibility 0.25s var(--ease);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-panel {
+  background: var(--surface);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 440px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.modal-overlay.active .modal-panel {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 24px;
+}
+
+/* ---- Form fields ---- */
+.form-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
+}
+
+.form-input:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-input::placeholder { color: var(--text-tertiary); }
+
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 28px;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInRow {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ringFill {
+  from { stroke-dashoffset: var(--ring-circumference); }
+  to   { stroke-dashoffset: var(--ring-target); }
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1200px) {
+  .dashboard { grid-template-columns: repeat(2, 1fr); }
+  .card--budget, .card--txn, .card--line, .card--bar { grid-column: span 1; }
+}
+
+@media (max-width: 768px) {
+  .header { padding: 0 20px; height: 60px; }
+  .summary-bar { grid-template-columns: 1fr; padding: 16px 20px 0; }
+  .dashboard {
+    grid-template-columns: 1fr;
+    padding: 16px 20px 32px;
+  }
+  .card--budget, .card--txn, .card--line, .card--bar { grid-column: span 1; }
+  h1 { font-size: 24px; }
+  .summary-value { font-size: 22px; }
+  .budget-grid { gap: 12px; }
+  .progress-ring, .progress-ring svg { width: 80px; height: 80px; }
+  .ring-percent { font-size: 14px; }
+}
+
+@media (max-width: 480px) {
+  .header { padding: 0 16px; }
+  .summary-bar { padding: 12px 16px 0; }
+  .dashboard { padding: 12px 16px 24px; gap: 12px; }
+  .card { padding: 16px; }
+  .form-row { grid-template-columns: 1fr; }
+  .modal-panel { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">$</div>
+    <div class="header-title"><span>FinanceFlow</span></div>
+  </div>
+  <div class="theme-toggle" id="themeToggle" role="button" tabindex="0" aria-label="Toggle theme">
+    <span class="theme-icon">&#9790;</span>
+    <span class="theme-icon">&#9728;</span>
+  </div>
+</header>
+
+<!-- SUMMARY BAR -->
+<section class="summary-bar" id="summaryBar">
+  <div class="summary-card">
+    <div class="summary-label">Total Budget</div>
+    <div class="summary-value budget" id="totalBudget">$0</div>
+    <div class="summary-sub">Monthly allocation</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Total Spent</div>
+    <div class="summary-value spent" id="totalSpent">$0</div>
+    <div class="summary-sub">This month</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Remaining</div>
+    <div class="summary-value remaining" id="totalRemaining">$0</div>
+    <div class="summary-sub">Available to spend</div>
+  </div>
+</section>
+
+<!-- DASHBOARD GRID -->
+<main class="dashboard">
+
+  <!-- Budget Overview -->
+  <section class="card card--budget">
+    <div class="card-header">
+      <h2>Budget Overview</h2>
+    </div>
+    <div class="budget-grid" id="budgetGrid"></div>
+  </section>
+
+  <!-- Transactions -->
+  <section class="card card--txn">
+    <div class="card-header">
+      <h2>Transactions</h2>
+      <button class="btn btn--primary btn--sm" id="addBtn">+ Add New</button>
+    </div>
+    <div class="txn-scroll" id="txnContainer"></div>
+  </section>
+
+  <!-- Line Chart -->
+  <section class="card card--line">
+    <div class="card-header">
+      <h2>7-Day Spending Trend</h2>
+    </div>
+    <div class="chart-container" id="lineChartWrap">
+      <svg id="lineChart" class="chart-svg" viewBox="0 0 480 220"></svg>
+      <div class="chart-tooltip" id="lineTooltip"></div>
+    </div>
+  </section>
+
+  <!-- Bar Chart -->
+  <section class="card card--bar">
+    <div class="card-header">
+      <h2>Category Breakdown</h2>
+    </div>
+    <div class="chart-container" id="barChartWrap">
+      <svg id="barChart" class="chart-svg" viewBox="0 0 480 220"></svg>
+      <div class="chart-tooltip" id="barTooltip"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-panel">
+    <h3 class="modal-title" id="modalTitle">Add Transaction</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="fieldDate">Date</label>
+        <input type="date" id="fieldDate" class="form-input">
+      </div>
+      <div class="form-group">
+        <label for="fieldCategory">Category</label>
+        <select id="fieldCategory" class="form-input">
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Bills">Bills</option>
+          <option value="Shopping">Shopping</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="fieldDesc">Description</label>
+      <input type="text" id="fieldDesc" class="form-input" placeholder="e.g. Grocery shopping">
+    </div>
+    <div class="form-group">
+      <label for="fieldAmount">Amount ($)</label>
+      <input type="number" id="fieldAmount" class="form-input" placeholder="0.00" step="0.01" min="0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" id="cancelBtn">Cancel</button>
+      <button class="btn btn--primary" id="saveBtn">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- JAVASCRIPT -->
+<script>
+(function() {
+  'use strict';
+
+  /* ========================================================
+     Data layer
+     ======================================================== */
+  var CATEGORIES = [
+    { name: 'Food',          hex: '#E17055', budget: 500  },
+    { name: 'Transport',     hex: '#00CEC9', budget: 300  },
+    { name: 'Entertainment', hex: '#FDCB6E', budget: 200  },
+    { name: 'Bills',         hex: '#6C5CE7', budget: 600  },
+    { name: 'Shopping',      hex: '#E84393', budget: 400  }
+  ];
+
+  var CAT_MAP = {};
+  CATEGORIES.forEach(function(c) { CAT_MAP[c.name] = c; });
+
+  var transactions = [];
+  var editId = null;
+
+  function load() {
+    var raw = localStorage.getItem('ff_transactions');
+    if (raw) {
+      try { transactions = JSON.parse(raw); } catch(e) { transactions = []; }
+    }
+    if (!transactions.length) seedSampleData();
+    var theme = localStorage.getItem('ff_theme') || 'dark';
+    applyTheme(theme);
+  }
+
+  function save() {
+    localStorage.setItem('ff_transactions', JSON.stringify(transactions));
+  }
+
+  function seedSampleData() {
+    var today = new Date();
+    var descs = {
+      Food: ['Grocery run', 'Coffee shop', 'Lunch delivery', 'Dinner out', 'Snacks'],
+      Transport: ['Uber ride', 'Gas station', 'Subway pass', 'Parking fee', 'Toll road'],
+      Entertainment: ['Movie tickets', 'Concert', 'Streaming sub', 'Book purchase', 'Game'],
+      Bills: ['Electric bill', 'Water bill', 'Internet', 'Phone plan', 'Insurance'],
+      Shopping: ['New shoes', 'Headphones', 'T-shirt', 'Home decor', 'Kitchen gadget']
+    };
+    transactions = [];
+    for (var i = 0; i < 22; i++) {
+      var daysAgo = Math.floor(Math.random() * 7);
+      var d = new Date(today);
+      d.setDate(today.getDate() - daysAgo);
+      var cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+      var desc = descs[cat.name][Math.floor(Math.random() * descs[cat.name].length)];
+      var amt = +(Math.random() * 120 + 5).toFixed(2);
+      transactions.push({
+        id: Date.now() + i,
+        date: d.toISOString().split('T')[0],
+        category: cat.name,
+        description: desc,
+        amount: amt
+      });
+    }
+    save();
+  }
+
+  /* ========================================================
+     Theme
+     ======================================================== */
+  var themeToggle = document.getElementById('themeToggle');
+
+  function applyTheme(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem('ff_theme', mode);
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+    /* Re-render charts so SVG text colors update */
+    renderLineChart();
+    renderBarChart();
+  }
+
+  themeToggle.addEventListener('click', toggleTheme);
+  themeToggle.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+  });
+
+  /* ========================================================
+     Summary bar with animated counters
+     ======================================================== */
+  function renderSummary() {
+    var month = new Date().getMonth();
+    var year = new Date().getFullYear();
+    var totalBudget = CATEGORIES.reduce(function(s, c) { return s + c.budget; }, 0);
+    var totalSpent = transactions
+      .filter(function(t) { var d = new Date(t.date); return d.getMonth() === month && d.getFullYear() === year; })
+      .reduce(function(s, t) { return s + t.amount; }, 0);
+    var remaining = totalBudget - totalSpent;
+
+    animateCounter('totalBudget', totalBudget);
+    animateCounter('totalSpent', totalSpent);
+    animateCounter('totalRemaining', remaining);
+  }
+
+  function animateCounter(elId, target) {
+    var el = document.getElementById(elId);
+    var start = parseFloat(el.dataset.current || '0');
+    var duration = 600;
+    var startTime = performance.now();
+
+    function step(now) {
+      var elapsed = now - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      /* easeOutCubic */
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = start + (target - start) * eased;
+      el.textContent = '$' + current.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        el.dataset.current = String(target);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ========================================================
+     Budget rings
+     ======================================================== */
+  function renderBudget() {
+    var grid = document.getElementById('budgetGrid');
+    /* Clear existing children safely */
+    while (grid.firstChild) { grid.removeChild(grid.firstChild); }
+
+    var month = new Date().getMonth();
+    var year = new Date().getFullYear();
+
+    CATEGORIES.forEach(function(cat, idx) {
+      var spent = transactions
+        .filter(function(t) { var d = new Date(t.date); return t.category === cat.name && d.getMonth() === month && d.getFullYear() === year; })
+        .reduce(function(s, t) { return s + t.amount; }, 0);
+      var pct = Math.min(100, (spent / cat.budget) * 100);
+      var radius = 38;
+      var circumference = 2 * Math.PI * radius;
+      var offset = circumference - (pct / 100) * circumference;
+
+      var wrap = document.createElement('div');
+      wrap.className = 'ring-wrap';
+
+      /* Build SVG ring */
+      var svgNS = 'http://www.w3.org/2000/svg';
+      var ringDiv = document.createElement('div');
+      ringDiv.className = 'progress-ring';
+
+      var svgEl = document.createElementNS(svgNS, 'svg');
+      svgEl.setAttribute('width', '100');
+      svgEl.setAttribute('height', '100');
+      svgEl.setAttribute('viewBox', '0 0 100 100');
+
+      var trackCircle = document.createElementNS(svgNS, 'circle');
+      trackCircle.setAttribute('class', 'ring-track');
+      trackCircle.setAttribute('cx', '50');
+      trackCircle.setAttribute('cy', '50');
+      trackCircle.setAttribute('r', String(radius));
+
+      var valueCircle = document.createElementNS(svgNS, 'circle');
+      valueCircle.setAttribute('class', 'ring-value');
+      valueCircle.setAttribute('cx', '50');
+      valueCircle.setAttribute('cy', '50');
+      valueCircle.setAttribute('r', String(radius));
+      valueCircle.setAttribute('stroke', cat.hex);
+      valueCircle.setAttribute('stroke-dasharray', String(circumference));
+      valueCircle.setAttribute('stroke-dashoffset', String(circumference));
+      valueCircle.style.setProperty('--ring-circumference', String(circumference));
+      valueCircle.style.setProperty('--ring-target', String(offset));
+      valueCircle.style.animation = 'ringFill 1s ' + (0.2 + idx * 0.12) + 's var(--ease) forwards';
+
+      svgEl.appendChild(trackCircle);
+      svgEl.appendChild(valueCircle);
+      ringDiv.appendChild(svgEl);
+
+      var center = document.createElement('div');
+      center.className = 'ring-center';
+      var pctSpan = document.createElement('span');
+      pctSpan.className = 'ring-percent';
+      pctSpan.style.color = cat.hex;
+      pctSpan.textContent = Math.round(pct) + '%';
+      center.appendChild(pctSpan);
+      ringDiv.appendChild(center);
+
+      wrap.appendChild(ringDiv);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'ring-name';
+      nameSpan.textContent = cat.name;
+      wrap.appendChild(nameSpan);
+
+      var amtSpan = document.createElement('span');
+      amtSpan.className = 'ring-amount';
+      amtSpan.textContent = '$' + spent.toFixed(0) + ' / $' + cat.budget;
+      wrap.appendChild(amtSpan);
+
+      grid.appendChild(wrap);
+    });
+  }
+
+  /* ========================================================
+     Transaction list
+     ======================================================== */
+  function renderTransactions() {
+    var container = document.getElementById('txnContainer');
+
+    if (transactions.length === 0) {
+      while (container.firstChild) { container.removeChild(container.firstChild); }
+      var emptyDiv = document.createElement('div');
+      emptyDiv.className = 'empty-state';
+
+      var iconDiv = document.createElement('div');
+      iconDiv.className = 'empty-icon';
+      iconDiv.textContent = '\uD83D\uDCB0';
+      emptyDiv.appendChild(iconDiv);
+
+      var titleDiv = document.createElement('div');
+      titleDiv.className = 'empty-title';
+      titleDiv.textContent = 'No transactions yet';
+      emptyDiv.appendChild(titleDiv);
+
+      var descDiv = document.createElement('div');
+      descDiv.className = 'empty-desc';
+      descDiv.textContent = 'Click "Add New" to record your first transaction.';
+      emptyDiv.appendChild(descDiv);
+
+      container.appendChild(emptyDiv);
+      return;
+    }
+
+    var sorted = transactions.slice().sort(function(a, b) {
+      var dd = b.date.localeCompare(a.date);
+      return dd !== 0 ? dd : b.id - a.id;
+    });
+
+    /* Build table using DOM methods */
+    while (container.firstChild) { container.removeChild(container.firstChild); }
+
+    var table = document.createElement('table');
+    table.className = 'txn-table';
+
+    var thead = document.createElement('thead');
+    var headerRow = document.createElement('tr');
+    ['Date', 'Category', 'Description', 'Amount', 'Actions'].forEach(function(label) {
+      var th = document.createElement('th');
+      th.textContent = label;
+      if (label === 'Actions') { th.style.textAlign = 'right'; }
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+
+    sorted.forEach(function(t, i) {
+      var cat = CAT_MAP[t.category] || { hex: '#888' };
+
+      var tr = document.createElement('tr');
+      tr.dataset.id = String(t.id);
+      tr.style.animationDelay = (i * 0.03) + 's';
+
+      /* Date cell */
+      var tdDate = document.createElement('td');
+      tdDate.textContent = formatDate(t.date);
+      tr.appendChild(tdDate);
+
+      /* Category cell */
+      var tdCat = document.createElement('td');
+      var badge = document.createElement('span');
+      badge.className = 'cat-badge';
+      badge.style.color = cat.hex;
+      badge.style.background = cat.hex + '18';
+      var dot = document.createElement('span');
+      dot.className = 'cat-badge-dot';
+      dot.style.background = cat.hex;
+      badge.appendChild(dot);
+      badge.appendChild(document.createTextNode(' ' + t.category));
+      tdCat.appendChild(badge);
+      tr.appendChild(tdCat);
+
+      /* Description cell */
+      var tdDesc = document.createElement('td');
+      tdDesc.textContent = t.description;
+      tr.appendChild(tdDesc);
+
+      /* Amount cell */
+      var tdAmt = document.createElement('td');
+      tdAmt.className = 'col-amount';
+      tdAmt.textContent = '$' + t.amount.toFixed(2);
+      tr.appendChild(tdAmt);
+
+      /* Actions cell */
+      var tdActions = document.createElement('td');
+      tdActions.className = 'col-actions';
+
+      var editBtn = document.createElement('button');
+      editBtn.className = 'btn btn--icon edit-btn';
+      editBtn.title = 'Edit';
+      editBtn.dataset.id = String(t.id);
+      editBtn.textContent = '\u270E';
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn btn--icon btn--danger del-btn';
+      delBtn.title = 'Delete';
+      delBtn.dataset.id = String(t.id);
+      delBtn.textContent = '\u00D7';
+
+      tdActions.appendChild(editBtn);
+      tdActions.appendChild(document.createTextNode(' '));
+      tdActions.appendChild(delBtn);
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+  }
+
+  function formatDate(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  /* Delegate clicks on transaction table */
+  document.getElementById('txnContainer').addEventListener('click', function(e) {
+    var editBtn = e.target.closest('.edit-btn');
+    var delBtn = e.target.closest('.del-btn');
+
+    if (editBtn) {
+      var id = parseInt(editBtn.dataset.id, 10);
+      var txn = transactions.find(function(t) { return t.id === id; });
+      if (txn) openModal(txn);
+    } else if (delBtn) {
+      var delId = parseInt(delBtn.dataset.id, 10);
+      var row = delBtn.closest('tr');
+      if (row) {
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        row.style.transition = 'all 0.25s ease';
+      }
+      setTimeout(function() {
+        transactions = transactions.filter(function(t) { return t.id !== delId; });
+        save();
+        renderAll();
+      }, 250);
+    }
+  });
+
+  /* ========================================================
+     Line Chart - bezier curves, gradient fill, gridlines, tooltips
+     ======================================================== */
+  function renderLineChart() {
+    var svg = document.getElementById('lineChart');
+    var tooltip = document.getElementById('lineTooltip');
+    var W = 480, H = 220;
+    var pad = { top: 20, right: 20, bottom: 40, left: 50 };
+    var chartW = W - pad.left - pad.right;
+    var chartH = H - pad.top - pad.bottom;
+
+    var today = new Date();
+    var days = [];
+    var totals = [];
+
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(today);
+      d.setDate(today.getDate() - i);
+      var key = d.toISOString().split('T')[0];
+      days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+      totals.push(transactions.filter(function(t) { return t.date === key; }).reduce(function(s, t) { return s + t.amount; }, 0));
+    }
+
+    var maxVal = Math.max.apply(null, totals.concat([50]));
+    var niceMax = Math.ceil(maxVal / 50) * 50;
+
+    var points = totals.map(function(v, idx) {
+      return {
+        x: pad.left + (idx / 6) * chartW,
+        y: pad.top + chartH - (v / niceMax) * chartH,
+        val: v,
+        label: days[idx]
+      };
+    });
+
+    /* Build smooth bezier path */
+    function bezierPath(pts) {
+      if (pts.length < 2) return '';
+      var pathD = 'M ' + pts[0].x + ',' + pts[0].y;
+      for (var j = 0; j < pts.length - 1; j++) {
+        var p0 = pts[j];
+        var p1 = pts[j + 1];
+        var cpx = (p0.x + p1.x) / 2;
+        pathD += ' C ' + cpx + ',' + p0.y + ' ' + cpx + ',' + p1.y + ' ' + p1.x + ',' + p1.y;
+      }
+      return pathD;
+    }
+
+    var linePath = bezierPath(points);
+    var areaPath = linePath + ' L ' + points[points.length - 1].x + ',' + (pad.top + chartH) + ' L ' + points[0].x + ',' + (pad.top + chartH) + ' Z';
+
+    /* Clear SVG safely and rebuild with DOM methods */
+    var svgNS = 'http://www.w3.org/2000/svg';
+    while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+
+    /* Defs for gradient */
+    var defs = document.createElementNS(svgNS, 'defs');
+    var grad = document.createElementNS(svgNS, 'linearGradient');
+    grad.setAttribute('id', 'lineGrad');
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+    var stop1 = document.createElementNS(svgNS, 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', '#6C5CE7');
+    stop1.setAttribute('stop-opacity', '0.3');
+    var stop2 = document.createElementNS(svgNS, 'stop');
+    stop2.setAttribute('offset', '100%');
+    stop2.setAttribute('stop-color', '#6C5CE7');
+    stop2.setAttribute('stop-opacity', '0');
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    /* Gridlines */
+    var gridSteps = 4;
+    for (var g = 0; g <= gridSteps; g++) {
+      var gy = pad.top + (g / gridSteps) * chartH;
+      var gval = niceMax - (g / gridSteps) * niceMax;
+
+      var gridLine = document.createElementNS(svgNS, 'line');
+      gridLine.setAttribute('class', 'chart-gridline');
+      gridLine.setAttribute('x1', String(pad.left));
+      gridLine.setAttribute('y1', String(gy));
+      gridLine.setAttribute('x2', String(W - pad.right));
+      gridLine.setAttribute('y2', String(gy));
+      svg.appendChild(gridLine);
+
+      var gridText = document.createElementNS(svgNS, 'text');
+      gridText.setAttribute('x', String(pad.left - 8));
+      gridText.setAttribute('y', String(gy + 4));
+      gridText.setAttribute('font-size', '11');
+      gridText.setAttribute('text-anchor', 'end');
+      gridText.textContent = '$' + gval.toFixed(0);
+      svg.appendChild(gridText);
+    }
+
+    /* X labels */
+    points.forEach(function(p) {
+      var xLabel = document.createElementNS(svgNS, 'text');
+      xLabel.setAttribute('x', String(p.x));
+      xLabel.setAttribute('y', String(H - 8));
+      xLabel.setAttribute('font-size', '11');
+      xLabel.setAttribute('text-anchor', 'middle');
+      xLabel.textContent = p.label;
+      svg.appendChild(xLabel);
+    });
+
+    /* Area fill */
+    var area = document.createElementNS(svgNS, 'path');
+    area.setAttribute('d', areaPath);
+    area.setAttribute('fill', 'url(#lineGrad)');
+    svg.appendChild(area);
+
+    /* Line */
+    var line = document.createElementNS(svgNS, 'path');
+    line.setAttribute('d', linePath);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', '#6C5CE7');
+    line.setAttribute('stroke-width', '2.5');
+    line.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(line);
+
+    /* Dots */
+    points.forEach(function(p, di) {
+      var circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('class', 'chart-dot');
+      circle.setAttribute('cx', String(p.x));
+      circle.setAttribute('cy', String(p.y));
+      circle.setAttribute('r', '4');
+      circle.setAttribute('fill', '#6C5CE7');
+      circle.setAttribute('stroke', 'var(--bg)');
+      circle.setAttribute('stroke-width', '2');
+      circle.dataset.idx = String(di);
+
+      circle.addEventListener('mouseenter', function(e) {
+        var pidx = parseInt(e.target.dataset.idx, 10);
+        var pt = points[pidx];
+        tooltip.textContent = pt.label + ': $' + pt.val.toFixed(2);
+        tooltip.classList.add('visible');
+        var svgRect = svg.getBoundingClientRect();
+        var scaleX = svgRect.width / W;
+        var scaleY = svgRect.height / H;
+        tooltip.style.left = (pt.x * scaleX - tooltip.offsetWidth / 2) + 'px';
+        tooltip.style.top = (pt.y * scaleY - tooltip.offsetHeight - 12) + 'px';
+      });
+      circle.addEventListener('mouseleave', function() {
+        tooltip.classList.remove('visible');
+      });
+
+      svg.appendChild(circle);
+    });
+  }
+
+  /* ========================================================
+     Bar Chart - horizontal bars with gradients and tooltips
+     ======================================================== */
+  function renderBarChart() {
+    var svg = document.getElementById('barChart');
+    var tooltip = document.getElementById('barTooltip');
+    var W = 480, H = 220;
+    var pad = { top: 15, right: 80, bottom: 15, left: 100 };
+    var chartW = W - pad.left - pad.right;
+    var chartH = H - pad.top - pad.bottom;
+
+    var totals = CATEGORIES.map(function(cat) {
+      return transactions.filter(function(t) { return t.category === cat.name; }).reduce(function(s, t) { return s + t.amount; }, 0);
+    });
+    var maxVal = Math.max.apply(null, totals.concat([100]));
+    var niceMax = Math.ceil(maxVal / 100) * 100;
+
+    var barH = Math.min(28, (chartH / CATEGORIES.length) - 8);
+    var gap = (chartH - barH * CATEGORIES.length) / (CATEGORIES.length > 1 ? CATEGORIES.length - 1 : 1);
+
+    var svgNS = 'http://www.w3.org/2000/svg';
+    while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+
+    /* Defs */
+    var defs = document.createElementNS(svgNS, 'defs');
+    CATEGORIES.forEach(function(cat, ci) {
+      var bGrad = document.createElementNS(svgNS, 'linearGradient');
+      bGrad.setAttribute('id', 'barGrad' + ci);
+      bGrad.setAttribute('x1', '0'); bGrad.setAttribute('y1', '0');
+      bGrad.setAttribute('x2', '1'); bGrad.setAttribute('y2', '0');
+      var s1 = document.createElementNS(svgNS, 'stop');
+      s1.setAttribute('offset', '0%');
+      s1.setAttribute('stop-color', cat.hex);
+      s1.setAttribute('stop-opacity', '1');
+      var s2 = document.createElementNS(svgNS, 'stop');
+      s2.setAttribute('offset', '100%');
+      s2.setAttribute('stop-color', cat.hex);
+      s2.setAttribute('stop-opacity', '0.6');
+      bGrad.appendChild(s1);
+      bGrad.appendChild(s2);
+      defs.appendChild(bGrad);
+    });
+    svg.appendChild(defs);
+
+    /* Vertical gridlines */
+    var gridSteps = 4;
+    for (var g = 0; g <= gridSteps; g++) {
+      var gx = pad.left + (g / gridSteps) * chartW;
+      var gval = (g / gridSteps) * niceMax;
+
+      var gridLine = document.createElementNS(svgNS, 'line');
+      gridLine.setAttribute('class', 'chart-gridline');
+      gridLine.setAttribute('x1', String(gx));
+      gridLine.setAttribute('y1', String(pad.top));
+      gridLine.setAttribute('x2', String(gx));
+      gridLine.setAttribute('y2', String(H - pad.bottom));
+      svg.appendChild(gridLine);
+
+      var gridText = document.createElementNS(svgNS, 'text');
+      gridText.setAttribute('x', String(gx));
+      gridText.setAttribute('y', String(H - 2));
+      gridText.setAttribute('font-size', '10');
+      gridText.setAttribute('text-anchor', 'middle');
+      gridText.textContent = '$' + gval.toFixed(0);
+      svg.appendChild(gridText);
+    }
+
+    /* Bars */
+    CATEGORIES.forEach(function(cat, ci) {
+      var w = (totals[ci] / niceMax) * chartW;
+      var y = pad.top + ci * (barH + gap);
+
+      /* Label */
+      var label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', String(pad.left - 10));
+      label.setAttribute('y', String(y + barH / 2 + 4));
+      label.setAttribute('font-size', '12');
+      label.setAttribute('font-weight', '600');
+      label.setAttribute('text-anchor', 'end');
+      label.setAttribute('fill', 'var(--text-secondary)');
+      label.textContent = cat.name;
+      svg.appendChild(label);
+
+      /* Track */
+      var track = document.createElementNS(svgNS, 'rect');
+      track.setAttribute('x', String(pad.left));
+      track.setAttribute('y', String(y));
+      track.setAttribute('width', String(chartW));
+      track.setAttribute('height', String(barH));
+      track.setAttribute('rx', '4');
+      track.setAttribute('fill', 'var(--ring-track)');
+      svg.appendChild(track);
+
+      /* Bar with animation */
+      var barRect = document.createElementNS(svgNS, 'rect');
+      barRect.setAttribute('class', 'bar-rect');
+      barRect.setAttribute('x', String(pad.left));
+      barRect.setAttribute('y', String(y));
+      barRect.setAttribute('width', String(Math.max(w, 1)));
+      barRect.setAttribute('height', String(barH));
+      barRect.setAttribute('rx', '4');
+      barRect.setAttribute('fill', 'url(#barGrad' + ci + ')');
+      barRect.dataset.idx = String(ci);
+
+      var anim = document.createElementNS(svgNS, 'animate');
+      anim.setAttribute('attributeName', 'width');
+      anim.setAttribute('from', '0');
+      anim.setAttribute('to', String(Math.max(w, 1)));
+      anim.setAttribute('dur', '0.8s');
+      anim.setAttribute('begin', (0.1 + ci * 0.08) + 's');
+      anim.setAttribute('fill', 'freeze');
+      anim.setAttribute('calcMode', 'spline');
+      anim.setAttribute('keySplines', '0.4 0 0.2 1');
+      anim.setAttribute('keyTimes', '0;1');
+      barRect.appendChild(anim);
+
+      /* Tooltip events */
+      barRect.addEventListener('mouseenter', function(e) {
+        var bidx = parseInt(e.target.dataset.idx, 10);
+        var bcat = CATEGORIES[bidx];
+        var bpct = bcat.budget > 0 ? ((totals[bidx] / bcat.budget) * 100).toFixed(0) : '0';
+        tooltip.textContent = bcat.name + ': $' + totals[bidx].toFixed(2) + ' of $' + bcat.budget + ' (' + bpct + '%)';
+        tooltip.classList.add('visible');
+        var barBCR = e.target.getBoundingClientRect();
+        var svgBCR = svg.getBoundingClientRect();
+        tooltip.style.left = (barBCR.right - svgBCR.left + 8) + 'px';
+        tooltip.style.top = (barBCR.top - svgBCR.top - 4) + 'px';
+      });
+      barRect.addEventListener('mouseleave', function() {
+        tooltip.classList.remove('visible');
+      });
+
+      svg.appendChild(barRect);
+
+      /* Value text */
+      var valText = document.createElementNS(svgNS, 'text');
+      valText.setAttribute('x', String(pad.left + Math.max(w, 1) + 8));
+      valText.setAttribute('y', String(y + barH / 2 + 4));
+      valText.setAttribute('font-size', '12');
+      valText.setAttribute('font-weight', '600');
+      valText.setAttribute('fill', 'var(--text-secondary)');
+      valText.textContent = '$' + totals[ci].toFixed(0);
+      svg.appendChild(valText);
+    });
+  }
+
+  /* ========================================================
+     Modal
+     ======================================================== */
+  var modal = document.getElementById('modal');
+  var modalTitle = document.getElementById('modalTitle');
+  var fieldDate = document.getElementById('fieldDate');
+  var fieldCategory = document.getElementById('fieldCategory');
+  var fieldDesc = document.getElementById('fieldDesc');
+  var fieldAmount = document.getElementById('fieldAmount');
+
+  function openModal(txn) {
+    editId = txn ? txn.id : null;
+    modalTitle.textContent = txn ? 'Edit Transaction' : 'Add Transaction';
+    fieldDate.value = txn ? txn.date : new Date().toISOString().split('T')[0];
+    fieldCategory.value = txn ? txn.category : 'Food';
+    fieldDesc.value = txn ? txn.description : '';
+    fieldAmount.value = txn ? txn.amount : '';
+    modal.classList.add('active');
+    setTimeout(function() { fieldDesc.focus(); }, 300);
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    editId = null;
+  }
+
+  document.getElementById('addBtn').addEventListener('click', function() { openModal(null); });
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+  /* Close on backdrop click */
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal();
+  });
+
+  /* Close on Escape key */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', function() {
+    var date = fieldDate.value;
+    var cat = fieldCategory.value;
+    var desc = fieldDesc.value.trim();
+    var amt = parseFloat(fieldAmount.value);
+
+    /* Validation with visual feedback */
+    var valid = true;
+    [fieldDate, fieldDesc, fieldAmount].forEach(function(f) { f.style.borderColor = ''; });
+
+    if (!date) { fieldDate.style.borderColor = '#E17055'; valid = false; }
+    if (!desc) { fieldDesc.style.borderColor = '#E17055'; valid = false; }
+    if (isNaN(amt) || amt <= 0) { fieldAmount.style.borderColor = '#E17055'; valid = false; }
+    if (!valid) return;
+
+    if (editId !== null) {
+      var idx = transactions.findIndex(function(t) { return t.id === editId; });
+      if (idx > -1) {
+        transactions[idx] = { id: editId, date: date, category: cat, description: desc, amount: amt };
+      }
+    } else {
+      transactions.push({ id: Date.now(), date: date, category: cat, description: desc, amount: amt });
+    }
+
+    save();
+    renderAll();
+    closeModal();
+  });
+
+  /* ========================================================
+     Render all
+     ======================================================== */
+  function renderAll() {
+    renderSummary();
+    renderBudget();
+    renderTransactions();
+    renderLineChart();
+    renderBarChart();
+  }
+
+  /* ========================================================
+     Init
+     ======================================================== */
+  load();
+  renderAll();
+
+})();
+</script>
+</body>
+</html>

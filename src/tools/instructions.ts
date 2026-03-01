@@ -1,25 +1,7 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerSessionTool } from "./tools/session.js";
-import { registerMessageTool } from "./tools/message.js";
-import { registerFileTool } from "./tools/file.js";
-import { registerFindTool } from "./tools/find.js";
-import { registerProjectTool } from "./tools/project.js";
-import { registerConfigTool } from "./tools/config.js";
-import { registerAuthTool } from "./tools/auth.js";
-import { registerPtyTool } from "./tools/pty.js";
-import { registerToolTool } from "./tools/tool.js";
-import { registerProviderTool } from "./tools/provider.js";
-import { registerMcpServerTool } from "./tools/mcp-server.js";
-import { registerInstructionsTool } from "./tools/instructions.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
-const server = new McpServer(
-  {
-    name: "opencode-mcp",
-    version: "0.1.0",
-  },
-  {
-    instructions: `# OpenCode MCP — AI Coding Agent
+const INSTRUCTIONS = `# OpenCode MCP — AI Coding Agent
 
 You have access to a fast coding agent through OpenCode. The model and provider are configured in the project's opencode.json — this MCP is model-agnostic. Use it to delegate code generation tasks while you focus on planning, reviewing, and orchestrating.
 
@@ -67,33 +49,38 @@ USE OPENCODE FOR: Boilerplate, repetitive code, initial implementations, file cr
 DO IT YOURSELF FOR: Small edits, config changes, architectural decisions, anything requiring deep judgment
 
 ## Available Tools Reference
+
+### Core
 - **opencode_session**: Core tool. 22 actions — create, get, list, status, children, update, delete, init, abort, share, unshare, summarize, revert, unrevert, prompt, promptAsync, command, shell, diff, fork, todo, permission. Supports dynamic model switching via model/provider params. Use 'agent' param to select which agent runs the task. Use 'permission' action to respond to tool permission requests (once/always/reject).
 - **opencode_message**: Read agent conversation history (list with optional limit, get specific message).
 - **opencode_file**: Review changes (status), read files (read), browse directories (list).
 - **opencode_find**: Search codebase — text (grep), files (by name), symbols (functions/classes).
+
+### Project & Config
 - **opencode_project**: Get project info (current, list), discover available agents (agents), commands (commands), and VCS info (vcs — git branch, status, etc.).
 - **opencode_config**: Manage configuration (get, providers, update).
 - **opencode_auth**: Set provider authentication credentials.
+
+### Providers & Models
 - **opencode_provider**: List providers with models and connection status (list), get auth methods (auth), start OAuth flow (authorize), complete OAuth (callback).
 - **opencode_tool**: Discover available tools — list all tool IDs (ids), get tools with JSON schema for a provider/model (list).
+
+### Infrastructure
 - **opencode_mcp_server**: Manage MCP servers within OpenCode — status (all statuses), add (register), connect, disconnect, auth_remove, auth_start, auth_callback, auth_authenticate.
 - **opencode_pty**: Manage terminal sessions — list, create (with command/args/cwd), get, update (resize/rename), remove.
-- **opencode_instructions**: Get the full workflow guide and tool reference on demand. Call when you need a refresher.`,
-  },
-);
 
-registerSessionTool(server);
-registerMessageTool(server);
-registerFileTool(server);
-registerFindTool(server);
-registerProjectTool(server);
-registerConfigTool(server);
-registerAuthTool(server);
-registerPtyTool(server);
-registerToolTool(server);
-registerProviderTool(server);
-registerMcpServerTool(server);
-registerInstructionsTool(server);
+### Help
+- **opencode_instructions**: Get this guide on demand. Call with no parameters when you need a refresher on how to use the OpenCode tools and workflow.`;
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+export function registerInstructionsTool(server: McpServer) {
+  server.tool(
+    "opencode_instructions",
+    "Get the full OpenCode MCP workflow guide and tool reference. Call this when you need a refresher on how to use the OpenCode tools, the recommended workflow, or best practices. No parameters needed.",
+    {
+      _unused: z.string().optional().describe("No parameters needed — just call this tool"),
+    },
+    async () => {
+      return { content: [{ type: "text" as const, text: INSTRUCTIONS }] };
+    }
+  );
+}

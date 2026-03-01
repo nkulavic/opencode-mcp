@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Board</title>
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #f0f4f8;
+  color: #1a202c;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- Top bar ---- */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+}
+
+.top-bar h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.search-wrapper {
+  flex: 1;
+  max-width: 400px;
+  min-width: 180px;
+  position: relative;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-wrapper input:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+
+.btn-add-column {
+  padding: 8px 16px;
+  background: #4299e1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.btn-add-column:hover {
+  background: #3182ce;
+}
+
+/* ---- Board ---- */
+.board {
+  display: flex;
+  gap: 20px;
+  padding: 24px;
+  overflow-x: auto;
+  align-items: flex-start;
+  min-height: calc(100vh - 72px);
+}
+
+/* ---- Column ---- */
+.column {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  min-width: 300px;
+  max-width: 360px;
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  transition: box-shadow 0.2s;
+}
+
+.column.drag-over-column {
+  box-shadow: 0 0 0 2px #4299e1, 0 4px 12px rgba(66,153,225,0.2);
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #e2e8f0;
+  border-radius: 12px 12px 0 0;
+  gap: 8px;
+}
+
+.column-header-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex: 1;
+  cursor: default;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.column-header-title.editing {
+  background: #fff;
+  border-color: #4299e1;
+  cursor: text;
+  outline: none;
+  white-space: normal;
+  overflow: visible;
+}
+
+.column-header .card-count {
+  background: #cbd5e0;
+  color: #4a5568;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.column-header .btn-delete-col {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a0aec0;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.column-header .btn-delete-col:hover {
+  color: #e53e3e;
+  background: rgba(229,62,62,0.1);
+}
+
+.card-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  min-height: 60px;
+}
+
+.card-list::-webkit-scrollbar {
+  width: 4px;
+}
+.card-list::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+.column-footer {
+  padding: 8px 12px 12px;
+}
+
+.btn-add-card {
+  width: 100%;
+  padding: 8px;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  background: transparent;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.btn-add-card:hover {
+  border-color: #4299e1;
+  color: #4299e1;
+  background: rgba(66,153,225,0.05);
+}
+
+/* ---- Cards ---- */
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px 10px 16px;
+  margin-bottom: 8px;
+  cursor: grab;
+  position: relative;
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.2s, opacity 0.2s, transform 0.15s;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 8px 0 0 8px;
+  background: transparent;
+}
+
+.card[data-color="red"]::before { background: #e53e3e; }
+.card[data-color="yellow"]::before { background: #ecc94b; }
+.card[data-color="green"]::before { background: #38a169; }
+.card[data-color="blue"]::before { background: #4299e1; }
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
+.card-desc {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 4px;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.badge-overdue {
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.badge-due-today {
+  background: #fefcbf;
+  color: #b7791f;
+}
+
+.badge-due-date {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+/* ---- Drop indicator ---- */
+.drop-indicator {
+  height: 3px;
+  background: #4299e1;
+  border-radius: 2px;
+  margin: 2px 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+/* ---- Modal overlay ---- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 480px;
+  padding: 28px 28px 20px;
+  position: relative;
+  animation: modal-in 0.2s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal h2 {
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+.modal label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 4px;
+  margin-top: 14px;
+}
+
+.modal label:first-of-type {
+  margin-top: 0;
+}
+
+.modal input[type="text"],
+.modal input[type="date"],
+.modal textarea,
+.modal select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+}
+
+.modal textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.color-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  position: relative;
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+}
+
+.color-option.selected {
+  border-color: #2d3748;
+}
+
+.color-option[data-color="none"] {
+  background: #e2e8f0;
+}
+.color-option[data-color="none"]::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  height: 2px;
+  background: #a0aec0;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  border-radius: 1px;
+}
+.color-option[data-color="red"] { background: #e53e3e; }
+.color-option[data-color="yellow"] { background: #ecc94b; }
+.color-option[data-color="green"] { background: #38a169; }
+.color-option[data-color="blue"] { background: #4299e1; }
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  gap: 8px;
+}
+
+.btn-modal {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.btn-save {
+  background: #4299e1;
+  color: #fff;
+}
+.btn-save:hover { background: #3182ce; }
+
+.btn-cancel {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+.btn-cancel:hover { background: #cbd5e0; }
+
+.btn-delete-card {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.btn-delete-card:hover {
+  background: rgba(229,62,62,0.1);
+}
+
+.modal-right-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 767px) {
+  .board {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 16px;
+    overflow-x: visible;
+  }
+
+  .column {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+    max-height: unset;
+  }
+
+  .top-bar {
+    padding: 12px 16px;
+  }
+
+  .top-bar h1 {
+    font-size: 1.1rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Kanban Board</h1>
+  <div class="search-wrapper">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" id="searchInput" placeholder="Search cards..." autocomplete="off">
+  </div>
+  <button class="btn-add-column" id="btnAddColumn">+ Add Column</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">New Card</h2>
+    <label for="cardTitleInput">Title</label>
+    <input type="text" id="cardTitleInput" placeholder="Card title">
+
+    <label for="cardDescInput">Description</label>
+    <textarea id="cardDescInput" placeholder="Optional description"></textarea>
+
+    <label>Color Label</label>
+    <div class="color-options" id="colorOptions">
+      <div class="color-option selected" data-color="none" tabindex="0" title="None"></div>
+      <div class="color-option" data-color="red" tabindex="0" title="Red"></div>
+      <div class="color-option" data-color="yellow" tabindex="0" title="Yellow"></div>
+      <div class="color-option" data-color="green" tabindex="0" title="Green"></div>
+      <div class="color-option" data-color="blue" tabindex="0" title="Blue"></div>
+    </div>
+
+    <label for="cardDueInput">Due Date</label>
+    <input type="date" id="cardDueInput">
+
+    <div class="modal-actions">
+      <button class="btn-delete-card" id="btnDeleteCard">Delete Card</button>
+      <div class="modal-right-actions">
+        <button class="btn-modal btn-cancel" id="btnCancel">Cancel</button>
+        <button class="btn-modal btn-save" id="btnSave">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var STORAGE_KEY = 'kanban_board_data';
+
+  var state = {
+    columns: [],
+    nextColId: 1,
+    nextCardId: 1
+  };
+
+  var dragState = {
+    cardId: null,
+    sourceColId: null,
+    indicator: null
+  };
+
+  var modalState = {
+    mode: null,
+    cardId: null,
+    colId: null
+  };
+
+  var searchQuery = '';
+
+  // ---- Persistence ----
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota exceeded, ignore */ }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.columns)) {
+          state = parsed;
+          return;
+        }
+      }
+    } catch (e) { /* corrupt data, ignore */ }
+    state = {
+      columns: [
+        { id: 1, title: 'To Do', cards: [] },
+        { id: 2, title: 'In Progress', cards: [] },
+        { id: 3, title: 'Done', cards: [] }
+      ],
+      nextColId: 4,
+      nextCardId: 1
+    };
+  }
+
+  // ---- Helpers ----
+  function getToday() {
+    var d = new Date();
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  function dueDateStatus(due) {
+    if (!due) return null;
+    var today = getToday();
+    if (due < today) return 'overdue';
+    if (due === today) return 'due-today';
+    return 'future';
+  }
+
+  function findColumn(colId) {
+    for (var i = 0; i < state.columns.length; i++) {
+      if (state.columns[i].id === colId) return state.columns[i];
+    }
+    return null;
+  }
+
+  function findCardAndColumn(cardId) {
+    for (var i = 0; i < state.columns.length; i++) {
+      var col = state.columns[i];
+      for (var j = 0; j < col.cards.length; j++) {
+        if (col.cards[j].id === cardId) return { card: col.cards[j], column: col, index: j };
+      }
+    }
+    return null;
+  }
+
+  function matchesSearch(card) {
+    if (!searchQuery) return true;
+    var q = searchQuery.toLowerCase();
+    return (card.title && card.title.toLowerCase().indexOf(q) !== -1) ||
+           (card.description && card.description.toLowerCase().indexOf(q) !== -1);
+  }
+
+  // ---- Render ----
+  function render() {
+    var board = document.getElementById('board');
+    // Clear the board using DOM methods
+    while (board.firstChild) {
+      board.removeChild(board.firstChild);
+    }
+
+    for (var c = 0; c < state.columns.length; c++) {
+      var col = state.columns[c];
+      board.appendChild(renderColumn(col));
+    }
+  }
+
+  function renderColumn(col) {
+    var colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.dataset.colId = col.id;
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'column-header';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'column-header-title';
+    titleEl.textContent = col.title;
+    titleEl.addEventListener('dblclick', function() {
+      startRenameColumn(titleEl, col);
+    });
+
+    var visibleCount = 0;
+    for (var i = 0; i < col.cards.length; i++) {
+      if (matchesSearch(col.cards[i])) visibleCount++;
+    }
+
+    var countEl = document.createElement('span');
+    countEl.className = 'card-count';
+    countEl.textContent = visibleCount;
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-delete-col';
+    deleteBtn.textContent = '\u00D7';
+    deleteBtn.title = 'Delete column';
+    deleteBtn.addEventListener('click', function() {
+      deleteColumn(col.id);
+    });
+
+    header.appendChild(titleEl);
+    header.appendChild(countEl);
+    header.appendChild(deleteBtn);
+    colEl.appendChild(header);
+
+    // Card list
+    var listEl = document.createElement('div');
+    listEl.className = 'card-list';
+    listEl.dataset.colId = col.id;
+
+    for (var j = 0; j < col.cards.length; j++) {
+      var card = col.cards[j];
+      var visible = matchesSearch(card);
+      var cardEl = renderCard(card);
+      if (!visible) cardEl.style.display = 'none';
+      listEl.appendChild(cardEl);
+    }
+
+    // Drag and drop listeners on the card list
+    listEl.addEventListener('dragover', handleDragOver);
+    listEl.addEventListener('dragleave', handleDragLeave);
+    listEl.addEventListener('drop', handleDrop);
+
+    colEl.appendChild(listEl);
+
+    // Footer
+    var footer = document.createElement('div');
+    footer.className = 'column-footer';
+    var addBtn = document.createElement('button');
+    addBtn.className = 'btn-add-card';
+    addBtn.textContent = '+ Add Card';
+    addBtn.addEventListener('click', function() {
+      openNewCardModal(col.id);
+    });
+    footer.appendChild(addBtn);
+    colEl.appendChild(footer);
+
+    return colEl;
+  }
+
+  function renderCard(card) {
+    var el = document.createElement('div');
+    el.className = 'card';
+    el.draggable = true;
+    el.dataset.cardId = card.id;
+    if (card.color && card.color !== 'none') {
+      el.dataset.color = card.color;
+    }
+
+    el.addEventListener('dragstart', handleDragStart);
+    el.addEventListener('dragend', handleDragEnd);
+    el.addEventListener('click', function(e) {
+      if (e.defaultPrevented) return;
+      openEditCardModal(card.id);
+    });
+
+    var titleDiv = document.createElement('div');
+    titleDiv.className = 'card-title';
+    titleDiv.textContent = card.title || 'Untitled';
+    el.appendChild(titleDiv);
+
+    if (card.description) {
+      var descDiv = document.createElement('div');
+      descDiv.className = 'card-desc';
+      descDiv.textContent = card.description;
+      el.appendChild(descDiv);
+    }
+
+    var status = dueDateStatus(card.dueDate);
+    if (card.dueDate) {
+      var metaDiv = document.createElement('div');
+      metaDiv.className = 'card-meta';
+
+      if (status === 'overdue') {
+        var badge = document.createElement('span');
+        badge.className = 'badge badge-overdue';
+        badge.textContent = 'Overdue';
+        metaDiv.appendChild(badge);
+      } else if (status === 'due-today') {
+        var badge2 = document.createElement('span');
+        badge2.className = 'badge badge-due-today';
+        badge2.textContent = 'Due today';
+        metaDiv.appendChild(badge2);
+      }
+
+      var dateBadge = document.createElement('span');
+      dateBadge.className = 'badge badge-due-date';
+      dateBadge.textContent = card.dueDate;
+      metaDiv.appendChild(dateBadge);
+
+      el.appendChild(metaDiv);
+    }
+
+    return el;
+  }
+
+  // ---- Column operations ----
+  function addColumn() {
+    var title = 'New Column';
+    var col = { id: state.nextColId++, title: title, cards: [] };
+    state.columns.push(col);
+    save();
+    render();
+    // Start editing the new column's name
+    var colEls = document.querySelectorAll('.column');
+    var lastCol = colEls[colEls.length - 1];
+    if (lastCol) {
+      var titleEl = lastCol.querySelector('.column-header-title');
+      if (titleEl) startRenameColumn(titleEl, col);
+    }
+  }
+
+  function deleteColumn(colId) {
+    var col = findColumn(colId);
+    if (!col) return;
+    if (col.cards.length > 0) {
+      if (!confirm('This column has ' + col.cards.length + ' card(s). Delete anyway?')) return;
+    }
+    state.columns = state.columns.filter(function(c) { return c.id !== colId; });
+    save();
+    render();
+  }
+
+  function startRenameColumn(titleEl, col) {
+    titleEl.contentEditable = 'true';
+    titleEl.classList.add('editing');
+    titleEl.focus();
+    // Select all text
+    var range = document.createRange();
+    range.selectNodeContents(titleEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function finishRename() {
+      titleEl.contentEditable = 'false';
+      titleEl.classList.remove('editing');
+      var newTitle = titleEl.textContent.trim();
+      if (newTitle) {
+        col.title = newTitle;
+      } else {
+        titleEl.textContent = col.title;
+      }
+      save();
+      render();
+    }
+
+    titleEl.addEventListener('blur', finishRename, { once: true });
+    titleEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        titleEl.blur();
+      }
+      if (e.key === 'Escape') {
+        titleEl.textContent = col.title;
+        titleEl.blur();
+      }
+    });
+  }
+
+  // ---- Card operations ----
+  function openNewCardModal(colId) {
+    modalState.mode = 'new';
+    modalState.colId = colId;
+    modalState.cardId = null;
+
+    document.getElementById('modalTitle').textContent = 'New Card';
+    document.getElementById('cardTitleInput').value = '';
+    document.getElementById('cardDescInput').value = '';
+    document.getElementById('cardDueInput').value = '';
+    document.getElementById('btnDeleteCard').style.display = 'none';
+
+    selectColor('none');
+    openModal();
+    document.getElementById('cardTitleInput').focus();
+  }
+
+  function openEditCardModal(cardId) {
+    var result = findCardAndColumn(cardId);
+    if (!result) return;
+    var card = result.card;
+
+    modalState.mode = 'edit';
+    modalState.cardId = cardId;
+    modalState.colId = result.column.id;
+
+    document.getElementById('modalTitle').textContent = 'Edit Card';
+    document.getElementById('cardTitleInput').value = card.title || '';
+    document.getElementById('cardDescInput').value = card.description || '';
+    document.getElementById('cardDueInput').value = card.dueDate || '';
+    document.getElementById('btnDeleteCard').style.display = '';
+
+    selectColor(card.color || 'none');
+    openModal();
+    document.getElementById('cardTitleInput').focus();
+  }
+
+  function saveCard() {
+    var title = document.getElementById('cardTitleInput').value.trim();
+    if (!title) {
+      document.getElementById('cardTitleInput').focus();
+      return;
+    }
+    var description = document.getElementById('cardDescInput').value.trim();
+    var dueDate = document.getElementById('cardDueInput').value || null;
+    var color = getSelectedColor();
+
+    if (modalState.mode === 'new') {
+      var col = findColumn(modalState.colId);
+      if (!col) { closeModal(); return; }
+      col.cards.push({
+        id: state.nextCardId++,
+        title: title,
+        description: description,
+        color: color,
+        dueDate: dueDate
+      });
+    } else if (modalState.mode === 'edit') {
+      var result = findCardAndColumn(modalState.cardId);
+      if (!result) { closeModal(); return; }
+      result.card.title = title;
+      result.card.description = description;
+      result.card.color = color;
+      result.card.dueDate = dueDate;
+    }
+
+    save();
+    closeModal();
+    render();
+  }
+
+  function deleteCard() {
+    if (modalState.mode !== 'edit' || !modalState.cardId) return;
+    var result = findCardAndColumn(modalState.cardId);
+    if (!result) { closeModal(); return; }
+    result.column.cards.splice(result.index, 1);
+    save();
+    closeModal();
+    render();
+  }
+
+  // ---- Color picker helpers ----
+  function selectColor(color) {
+    var options = document.querySelectorAll('#colorOptions .color-option');
+    for (var i = 0; i < options.length; i++) {
+      if (options[i].dataset.color === color) {
+        options[i].classList.add('selected');
+      } else {
+        options[i].classList.remove('selected');
+      }
+    }
+  }
+
+  function getSelectedColor() {
+    var selected = document.querySelector('#colorOptions .color-option.selected');
+    return selected ? selected.dataset.color : 'none';
+  }
+
+  // ---- Modal ----
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    modalState.mode = null;
+    modalState.cardId = null;
+    modalState.colId = null;
+  }
+
+  function isModalOpen() {
+    return document.getElementById('modalOverlay').classList.contains('open');
+  }
+
+  // ---- Drag and Drop ----
+  function handleDragStart(e) {
+    var cardEl = e.target.closest('.card');
+    if (!cardEl) return;
+    var cardId = parseInt(cardEl.dataset.cardId, 10);
+    var listEl = cardEl.closest('.card-list');
+    var colId = parseInt(listEl.dataset.colId, 10);
+
+    dragState.cardId = cardId;
+    dragState.sourceColId = colId;
+
+    cardEl.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(cardId));
+  }
+
+  function handleDragEnd(e) {
+    var cardEl = e.target.closest('.card');
+    if (cardEl) cardEl.classList.remove('dragging');
+    removeIndicator();
+    removeColumnHighlight();
+    dragState.cardId = null;
+    dragState.sourceColId = null;
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    var listEl = e.currentTarget;
+    var colEl = listEl.closest('.column');
+    colEl.classList.add('drag-over-column');
+
+    // Find the card element we're hovering over
+    var afterElement = getDragAfterElement(listEl, e.clientY);
+    showIndicator(listEl, afterElement);
+  }
+
+  function handleDragLeave(e) {
+    var listEl = e.currentTarget;
+    var related = e.relatedTarget;
+    if (listEl.contains(related)) return;
+    var colEl = listEl.closest('.column');
+    colEl.classList.remove('drag-over-column');
+    removeIndicator();
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    var listEl = e.currentTarget;
+    var targetColId = parseInt(listEl.dataset.colId, 10);
+    var afterElement = getDragAfterElement(listEl, e.clientY);
+
+    removeIndicator();
+    removeColumnHighlight();
+
+    if (dragState.cardId == null) return;
+
+    var result = findCardAndColumn(dragState.cardId);
+    if (!result) return;
+
+    // Remove card from source
+    result.column.cards.splice(result.index, 1);
+
+    // Insert into target
+    var targetCol = findColumn(targetColId);
+    if (!targetCol) return;
+
+    if (afterElement) {
+      var afterCardId = parseInt(afterElement.dataset.cardId, 10);
+      var insertIndex = -1;
+      for (var i = 0; i < targetCol.cards.length; i++) {
+        if (targetCol.cards[i].id === afterCardId) { insertIndex = i; break; }
+      }
+      if (insertIndex === -1) {
+        targetCol.cards.push(result.card);
+      } else {
+        targetCol.cards.splice(insertIndex, 0, result.card);
+      }
+    } else {
+      targetCol.cards.push(result.card);
+    }
+
+    save();
+    render();
+  }
+
+  function getDragAfterElement(container, y) {
+    var cards = container.querySelectorAll('.card:not(.dragging)');
+    var closest = null;
+    var closestOffset = Number.NEGATIVE_INFINITY;
+
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      if (card.style.display === 'none') continue;
+      var box = card.getBoundingClientRect();
+      var offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closestOffset) {
+        closestOffset = offset;
+        closest = card;
+      }
+    }
+    return closest;
+  }
+
+  function showIndicator(listEl, beforeElement) {
+    removeIndicator();
+    var indicator = document.createElement('div');
+    indicator.className = 'drop-indicator';
+    dragState.indicator = indicator;
+
+    if (beforeElement) {
+      listEl.insertBefore(indicator, beforeElement);
+    } else {
+      listEl.appendChild(indicator);
+    }
+  }
+
+  function removeIndicator() {
+    if (dragState.indicator && dragState.indicator.parentNode) {
+      dragState.indicator.parentNode.removeChild(dragState.indicator);
+    }
+    dragState.indicator = null;
+  }
+
+  function removeColumnHighlight() {
+    var cols = document.querySelectorAll('.column.drag-over-column');
+    for (var i = 0; i < cols.length; i++) {
+      cols[i].classList.remove('drag-over-column');
+    }
+  }
+
+  // ---- Search ----
+  function handleSearch() {
+    searchQuery = document.getElementById('searchInput').value.trim();
+    render();
+  }
+
+  // ---- Event wiring ----
+  function init() {
+    load();
+    render();
+
+    // Add Column button
+    document.getElementById('btnAddColumn').addEventListener('click', addColumn);
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+    // Modal overlay close
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === document.getElementById('modalOverlay')) {
+        closeModal();
+      }
+    });
+
+    // Color option clicks
+    var colorOptions = document.querySelectorAll('#colorOptions .color-option');
+    for (var i = 0; i < colorOptions.length; i++) {
+      colorOptions[i].addEventListener('click', function() {
+        selectColor(this.dataset.color);
+      });
+      colorOptions[i].addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectColor(this.dataset.color);
+        }
+      });
+    }
+
+    // Modal buttons
+    document.getElementById('btnSave').addEventListener('click', saveCard);
+    document.getElementById('btnCancel').addEventListener('click', closeModal);
+    document.getElementById('btnDeleteCard').addEventListener('click', deleteCard);
+
+    // Enter to save in modal
+    document.getElementById('cardTitleInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveCard();
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Escape closes modal
+      if (e.key === 'Escape' && isModalOpen()) {
+        closeModal();
+        return;
+      }
+
+      // N opens new card for first column
+      if (e.key === 'n' || e.key === 'N') {
+        if (isModalOpen()) return;
+        var tag = document.activeElement.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement.isContentEditable) return;
+        e.preventDefault();
+        if (state.columns.length > 0) {
+          openNewCardModal(state.columns[0].id);
+        }
+      }
+    });
+  }
+
+  // Start
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

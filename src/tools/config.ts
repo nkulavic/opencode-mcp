@@ -5,11 +5,12 @@ import { getClient } from "../client.js";
 export function registerConfigTool(server: McpServer) {
   server.tool(
     "opencode_config",
-    "Get OpenCode configuration. Actions: get (full config), providers (list providers and default models)",
+    "Manage OpenCode configuration. Actions: get (full config), providers (list providers and default models), update (modify config)",
     {
-      action: z.enum(["get", "providers"]),
+      action: z.enum(["get", "providers", "update"]),
+      body: z.record(z.unknown()).optional().describe("Config object to merge (for update action)"),
     },
-    async ({ action }) => {
+    async ({ action, body }) => {
       try {
         const client = await getClient();
 
@@ -21,6 +22,11 @@ export function registerConfigTool(server: McpServer) {
           case "providers": {
             const providers = await client.config.providers();
             return { content: [{ type: "text" as const, text: JSON.stringify(providers) }] };
+          }
+          case "update": {
+            if (!body) throw new Error("Body required for update");
+            const config = await client.config.update({ body: body as Record<string, unknown> });
+            return { content: [{ type: "text" as const, text: JSON.stringify(config) }] };
           }
           default:
             throw new Error(`Unknown action: ${action}`);

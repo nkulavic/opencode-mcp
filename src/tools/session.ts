@@ -5,20 +5,25 @@ import { getClient } from "../client.js";
 export function registerSessionTool(server: McpServer) {
   server.tool(
     "opencode_session",
-    "Manage OpenCode coding agent sessions. START HERE: use action 'create' to get a session ID, then 'prompt' to send coding tasks. The agent has full file access (read/write/edit/bash). Use 'model' and 'provider' params on prompt to switch models on the fly (e.g. model='gpt-oss-120b' for speed, model='zai-glm-4.7' for quality). Use 'revert' to undo bad changes, 'abort' to stop a running task, 'summarize' to get a session recap. Always reuse session IDs for related work.",
+    "Manage OpenCode coding agent sessions. START HERE: use action 'create' to get a session ID, then 'prompt' to send coding tasks. The agent has full file access (read/write/edit/bash). Use 'model' and 'provider' params on prompt/shell/command to switch models on the fly. Actions: create, get, list, status (overall status), children, update, delete, init, abort, share, unshare, summarize, revert (undo changes, pass messageId), unrevert, prompt (send task), promptAsync (send task, return immediately), command (run agent command), shell (run shell command), diff (get code diff, optional messageId), fork (fork session at a message), todo (get session todo list), permission (respond to tool permission requests — once/always/reject). Always reuse session IDs for related work.",
     {
       action: z.enum([
         "create", "get", "list", "children", "update", "delete",
         "init", "abort", "share", "unshare", "summarize",
-        "revert", "unrevert", "prompt", "command", "shell",
+        "revert", "unrevert", "prompt", "promptAsync", "command", "shell",
+        "diff", "fork", "todo", "status", "permission",
       ]),
-      id: z.string().optional().describe("Session ID (required for most actions except create/list)"),
+      id: z.string().optional().describe("Session ID (required for most actions except create/list/status)"),
       content: z.string().optional().describe("Prompt content, command, or shell command"),
+      messageId: z.string().optional().describe("Message ID (for diff, fork, revert)"),
       model: z.string().optional().describe("Model ID to use (e.g. 'gpt-oss-120b', 'zai-glm-4.7', 'llama3.1-8b'). Overrides the default model for this prompt."),
       provider: z.string().optional().describe("Provider ID (e.g. 'cerebras', 'opencode'). Required when specifying model."),
-      body: z.record(z.unknown()).optional().describe("Additional body parameters"),
+      agent: z.string().optional().describe("Agent to use for prompt/shell (e.g. 'coder', 'build'). Defaults to the configured agent."),
+      body: z.record(z.unknown()).optional().describe("Additional body parameters (noReply, system, tools, etc.)"),
+      permissionId: z.string().optional().describe("Permission ID (for permission action)"),
+      response: z.enum(["once", "always", "reject"]).optional().describe("Permission response (for permission action)"),
     },
-    async ({ action, id, content, model, provider, body }) => {
+    async ({ action, id, content, messageId, model, provider, agent, body, permissionId, response }) => {
       try {
         const client = await getClient();
 
@@ -53,9 +58,15 @@ export function registerSessionTool(server: McpServer) {
           }
           case "init": {
             if (!id) throw new Error("Session ID required");
+            let initBody: { modelID: string; providerID: string; messageID: string } | undefined;
+            if (model && messageId) {
+              initBody = { modelID: model, providerID: provider ?? "cerebras", messageID: messageId };
+            } else if (body) {
+              initBody = body as { modelID: string; providerID: string; messageID: string };
+            }
             const result = await client.session.init({
               path: { id },
-              body: body as { modelID: string; providerID: string; messageID: string } | undefined,
+              body: initBody,
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }
@@ -76,17 +87,23 @@ export function registerSessionTool(server: McpServer) {
           }
           case "summarize": {
             if (!id) throw new Error("Session ID required");
+            const sumBody = model
+              ? { modelID: model, providerID: provider ?? "cerebras" }
+              : (body as { providerID: string; modelID: string } | undefined);
             const result = await client.session.summarize({
               path: { id },
-              body: body as { providerID: string; modelID: string } | undefined,
+              body: sumBody,
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }
           case "revert": {
             if (!id) throw new Error("Session ID required");
+            const revertBody = messageId
+              ? { messageID: messageId, ...(body?.["partID"] ? { partID: body["partID"] as string } : {}) }
+              : (body as { messageID: string; partID?: string } | undefined);
             const session = await client.session.revert({
               path: { id },
-              body: body as { messageID: string; partID?: string } | undefined,
+              body: revertBody,
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(session) }] };
           }
@@ -95,43 +112,86 @@ export function registerSessionTool(server: McpServer) {
             const session = await client.session.unrevert({ path: { id } });
             return { content: [{ type: "text" as const, text: JSON.stringify(session) }] };
           }
-          case "prompt": {
+          case "prompt":
+          case "promptAsync": {
             if (!id) throw new Error("Session ID required");
             if (!content) throw new Error("Content required for prompt");
-            const promptBody = {
+            const promptBody: Record<string, unknown> = {
               ...(body as Record<string, unknown>),
               parts: [{ type: "text" as const, text: content }],
-              ...(model ? { model: { modelID: model, providerID: provider ?? "cerebras" } } : {}),
             };
-            const result = await client.session.prompt({
-              path: { id },
-              body: promptBody as typeof promptBody & { parts: [{ type: "text"; text: string }] },
-            });
+            if (model) promptBody.model = { modelID: model, providerID: provider ?? "cerebras" };
+            if (agent) promptBody.agent = agent;
+            const typedBody = promptBody as typeof promptBody & { parts: [{ type: "text"; text: string }] };
+            const result = action === "promptAsync"
+              ? await client.session.promptAsync({ path: { id }, body: typedBody })
+              : await client.session.prompt({ path: { id }, body: typedBody });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }
           case "command": {
             if (!id) throw new Error("Session ID required");
             if (!content) throw new Error("Content required for command");
+            const cmdBody: Record<string, unknown> = {
+              command: content,
+              arguments: (body?.["arguments"] as string) ?? "",
+            };
+            if (agent) cmdBody.agent = agent;
+            if (body?.["messageID"]) cmdBody.messageID = body["messageID"];
+            if (model) cmdBody.model = model;
             const result = await client.session.command({
               path: { id },
-              body: {
-                ...(body as Record<string, unknown>),
-                command: content,
-                arguments: (body?.["arguments"] as string) ?? "",
-              },
+              body: cmdBody as { command: string; arguments: string },
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }
           case "shell": {
             if (!id) throw new Error("Session ID required");
             if (!content) throw new Error("Content required for shell");
+            const shellBody: Record<string, unknown> = {
+              command: content,
+              agent: agent ?? (body?.["agent"] as string) ?? "default",
+            };
+            if (model) {
+              shellBody.model = { modelID: model, providerID: provider ?? "cerebras" };
+            }
             const result = await client.session.shell({
               path: { id },
-              body: {
-                ...(body as Record<string, unknown>),
-                command: content,
-                agent: (body?.["agent"] as string) ?? "default",
-              },
+              body: shellBody as { command: string; agent: string },
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+          }
+          case "diff": {
+            if (!id) throw new Error("Session ID required");
+            const diff = await client.session.diff({
+              path: { id },
+              ...(messageId ? { query: { messageID: messageId } } : {}),
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(diff) }] };
+          }
+          case "fork": {
+            if (!id) throw new Error("Session ID required");
+            const forked = await client.session.fork({
+              path: { id },
+              ...(messageId ? { body: { messageID: messageId } } : {}),
+            });
+            return { content: [{ type: "text" as const, text: JSON.stringify(forked) }] };
+          }
+          case "todo": {
+            if (!id) throw new Error("Session ID required");
+            const todo = await client.session.todo({ path: { id } });
+            return { content: [{ type: "text" as const, text: JSON.stringify(todo) }] };
+          }
+          case "status": {
+            const sessionStatus = await client.session.status();
+            return { content: [{ type: "text" as const, text: JSON.stringify(sessionStatus) }] };
+          }
+          case "permission": {
+            if (!id) throw new Error("Session ID required");
+            if (!permissionId) throw new Error("Permission ID required");
+            if (!response) throw new Error("Response required (once, always, or reject)");
+            const result = await client.postSessionIdPermissionsPermissionId({
+              path: { id, permissionID: permissionId },
+              body: { response },
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }

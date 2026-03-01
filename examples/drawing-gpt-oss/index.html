@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Drawing App</title>
+  <style>
+    /* CSS Variables */
+    :root {
+      --bg-dark: #1e1e1e;
+      --bg-panel: #2b2b2b;
+      --bg-hover: #3a3a3a;
+      --bg-active: #4a4a4a;
+      --border: #444;
+      --text: #ccc;
+      --text-bright: #fff;
+      --accent: #4a9eff;
+    }
+    body, html { margin:0; height:100%; background: var(--bg-dark); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow:hidden; }
+    #app { display:flex; height:100%; }
+    /* Toolbar (left sidebar) */
+    #toolbar { background: var(--bg-panel); width:220px; display:flex; flex-direction:column; padding:12px; box-sizing:border-box; overflow-y:auto; }
+    .section { margin-bottom:20px; }
+    .section-header { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color: #888; margin-bottom:8px; }
+    .tools-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .tool-btn { background:none; border:none; color: var(--text); font-size:20px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px; border-radius:4px; transition:background 0.15s, color 0.15s; }
+    .tool-btn.active, .tool-btn:hover { background: var(--accent); color: var(--text-bright); }
+    .tool-label { font-size:11px; margin-top:4px; color: var(--text); }
+    .tool-btn.active .tool-label, .tool-btn:hover .tool-label { color: var(--text-bright); }
+    /* Color section */
+    #color-picker { width:40px; height:40px; border:none; cursor:pointer; margin-bottom:8px; }
+    .current-swatch { width:40px; height:40px; border:2px solid var(--border); box-sizing:border-box; margin-right:8px; }
+    .color-section { display:flex; align-items:center; margin-bottom:8px; }
+    .presets { display:grid; grid-template-columns:repeat(6,20px); gap:4px; }
+    .swatch { width:20px; height:20px; border:1px solid var(--border); cursor:pointer; transition:transform 0.15s; }
+    .swatch:hover { transform:scale(1.2); }
+    .swatch.active { border:2px solid var(--accent); }
+    /* Brush section */
+    .slider-container { display:flex; align-items:center; margin-bottom:8px; }
+    .slider-label { font-size:11px; color: #888; width:40px; }
+    .slider-value { font-size:11px; color: var(--text); margin-left:4px; min-width:24px; text-align:right; }
+    input[type="range"] { -webkit-appearance:none; width:100%; height:4px; background:#555; border-radius:2px; outline:none; transition:background 0.15s; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; background:var(--accent); border-radius:50%; cursor:pointer; }
+    input[type="range"]::-moz-range-thumb { width:14px; height:14px; background:var(--accent); border:none; border-radius:50%; cursor:pointer; }
+    /* Actions section */
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .action-btn { background:none; border:none; color: var(--text); font-size:20px; cursor:pointer; padding:8px; border-radius:4px; transition:background 0.15s; }
+    .action-btn:hover { background: var(--bg-hover); }
+    /* Zoom section */
+    .zoom-container { display:flex; align-items:center; margin-top:auto; font-size:12px; color: var(--text); }
+    .zoom-btn { background:none; border:none; color: var(--text); font-size:16px; cursor:pointer; margin:0 4px; }
+    .zoom-btn:hover { color: var(--accent); }
+    /* Layers panel (right) */
+    #layers { background: var(--bg-panel); width:200px; display:flex; flex-direction:column; padding:12px; box-sizing:border-box; overflow-y:auto; }
+    #layers h3 { font-size:13px; color: var(--text-bright); margin:0 0 8px 0; }
+    .layer-item { position:relative; width:100%; padding-top:56.25%; /* 16:9 ratio */ background: linear-gradient(45deg, #777 25%, transparent 25%), linear-gradient(-45deg, #777 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #777 75%), linear-gradient(-45deg, transparent 75%, #777 75%); background-size:20px 20px; background-position:0 0,0 10px,10px -10px,-10px 0px; border:1px solid var(--border); margin-bottom:8px; cursor:pointer; transition:border 0.15s; }
+    .layer-item.active { border-color: var(--accent); }
+    .layer-thumb { position:absolute; top:0; left:0; width:100%; height:100%; }
+    .layer-controls { position:absolute; top:4px; right:4px; display:flex; gap:4px; }
+    .layer-controls span { font-size:14px; cursor:pointer; color: var(--text); }
+    .layer-controls span:hover { color: var(--accent); }
+    /* Canvas area */
+    #canvas-container { flex:1; position:relative; background: var(--bg-dark); overflow:hidden; }
+    #canvas-container::before { content:""; position:absolute; top:0; left:0; width:100%; height:100%; background-image:linear-gradient(45deg,#777 25%,transparent 25%), linear-gradient(-45deg,#777 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#777 75%), linear-gradient(-45deg,transparent 75%,#777 75%); background-size:20px 20px; background-position:0 0,0 10px,10px -10px,-10px 0px; }
+    .layer-canvas { position:absolute; top:0; left:0; display:block; }
+    #cursor-preview { position:absolute; pointer-events:none; border:1px solid var(--accent); border-radius:50%; mix-blend-mode:difference; transform:translate(-50%,-50%); transition:width 0.15s, height 0.15s; }
+    #status { position:absolute; bottom:5px; right:10px; color: var(--text); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Left Toolbar -->
+    <div id="toolbar">
+      <!-- Tools Section -->
+      <div class="section tools-section">
+        <div class="section-header">Tools</div>
+        <div class="tools-grid">
+          <button id="tool-pen" class="tool-btn" title="Pen"><span class="tool-icon">✏️</span><span class="tool-label">Pen</span></button>
+          <button id="tool-line" class="tool-btn" title="Line"><span class="tool-icon">📏</span><span class="tool-label">Line</span></button>
+          <button id="tool-rect" class="tool-btn" title="Rectangle"><span class="tool-icon">▭</span><span class="tool-label">Rect</span></button>
+          <button id="tool-ellipse" class="tool-btn" title="Ellipse"><span class="tool-icon">⚪</span><span class="tool-label">Ellipse</span></button>
+          <button id="tool-eraser" class="tool-btn" title="Eraser"><span class="tool-icon">🩹</span><span class="tool-label">Eraser</span></button>
+          <button id="tool-fill" class="tool-btn" title="Fill"><span class="tool-icon">🪣</span><span class="tool-label">Fill</span></button>
+        </div>
+      </div>
+      <!-- Color Section -->
+      <div class="section color-section">
+        <div class="section-header">Color</div>
+        <div class="color-section">
+          <input type="color" id="color-picker" />
+          <div class="current-swatch" id="current-swatch"></div>
+        </div>
+        <div class="presets">
+          <div class="swatch" data-color="#000000" style="background:#000"></div>
+          <div class="swatch" data-color="#ffffff" style="background:#fff"></div>
+          <div class="swatch" data-color="#ff0000" style="background:#f00"></div>
+          <div class="swatch" data-color="#ff7f00" style="background:#f70"></div>
+          <div class="swatch" data-color="#ffff00" style="background:#ff0"></div>
+          <div class="swatch" data-color="#00ff00" style="background:#0f0"></div>
+          <div class="swatch" data-color="#00ffff" style="background:#0ff"></div>
+          <div class="swatch" data-color="#0000ff" style="background:#00f"></div>
+          <div class="swatch" data-color="#7f00ff" style="background:#70f"></div>
+          <div class="swatch" data-color="#ff00ff" style="background:#f0f"></div>
+          <div class="swatch" data-color="#a52a2a" style="background:#a52a2a"></div>
+          <div class="swatch" data-color="#808080" style="background:#808080"></div>
+        </div>
+      </div>
+      <!-- Brush Section -->
+      <div class="section brush-section">
+        <div class="section-header">Brush</div>
+        <div class="slider-container">
+          <span class="slider-label">Size</span>
+          <input type="range" id="stroke-width" min="1" max="50" value="5"/>
+          <span class="slider-value" id="stroke-width-value"></span>
+        </div>
+        <div class="slider-container">
+          <span class="slider-label">Opacity</span>
+          <input type="range" id="opacity" min="0" max="100" value="100"/>
+          <span class="slider-value" id="opacity-value"></span>
+        </div>
+      </div>
+      <!-- Actions Section -->
+      <div class="section actions-section">
+        <div class="section-header">Actions</div>
+        <div class="actions">
+          <button id="undo" class="action-btn" title="Undo (Ctrl+Z)">↩️</button>
+          <button id="redo" class="action-btn" title="Redo (Ctrl+Shift+Z)">↪️</button>
+          <button id="clear" class="action-btn" title="Clear Layer">🗑️</button>
+          <button id="save" class="action-btn" title="Save as PNG">💾</button>
+        </div>
+      </div>
+      <!-- Zoom Section -->
+      <div class="zoom-container">
+        <button class="zoom-btn" id="zoom-out">−</button>
+        <span id="zoom-display">100%</span>
+        <button class="zoom-btn" id="zoom-in">+</button>
+      </div>
+    </div>
+    <!-- Canvas -->
+    <div id="canvas-container"></div>
+    <!-- Right Layers Panel -->
+    <div id="layers">
+      <h3>Layers</h3>
+      <button id="add-layer" title="Add Layer">➕</button>
+      <div id="layer-list"></div>
+    </div>
+  </div>
+<div id="cursor-preview"></div>
+<div id="status"></div>
+<script>
+(() => {
+  const canvasContainer = document.getElementById('canvas-container');
+  const toolbar = document.getElementById('toolbar');
+  const layerListEl = document.getElementById('layer-list');
+  const addLayerBtn = document.getElementById('add-layer');
+  const cursorPreview = document.getElementById('cursor-preview');
+  const statusEl = document.getElementById('status');
+  const zoomDisplay = document.getElementById('zoom-display');
+  const zoomInBtn = document.getElementById('zoom-in');
+  const zoomOutBtn = document.getElementById('zoom-out');
+
+  const tools = ['pen','line','rect','ellipse','eraser','fill'];
+  let currentTool = 'pen';
+  const colorPicker = document.getElementById('color-picker');
+  const currentSwatch = document.getElementById('current-swatch');
+  const strokeWidthInput = document.getElementById('stroke-width');
+  const strokeWidthValue = document.getElementById('stroke-width-value');
+  const opacityInput = document.getElementById('opacity');
+  const opacityValue = document.getElementById('opacity-value');
+  const undoBtn = document.getElementById('undo');
+  const redoBtn = document.getElementById('redo');
+  const clearBtn = document.getElementById('clear');
+  const saveBtn = document.getElementById('save');
+  const zoomInBtn = document.getElementById('zoom-in');
+  const zoomOutBtn = document.getElementById('zoom-out');
+
+  const maxLayers = 5;
+  const layers = [];
+  let activeLayerIdx = -1;
+  let zoom = 1;
+  let panX = 0, panY = 0;
+  let isPanning = false;
+  let lastPan = {x:0,y:0};
+
+  function createLayer(name) {
+    if (layers.length >= maxLayers) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasContainer.clientWidth;
+    canvas.height = canvasContainer.clientHeight;
+    canvas.className = 'layer-canvas';
+    canvas.style.zIndex = layers.length; // bottom to top order
+    const ctx = canvas.getContext('2d');
+    // fill transparent initially
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const layer = {name, canvas, ctx, visible:true, history:[], historyIdx:-1};
+    layers.push(layer);
+    canvasContainer.appendChild(canvas);
+    addLayerUI(layer, layers.length-1);
+    setActiveLayer(layers.length-1);
+    saveState();
+  }
+
+  function addLayerUI(layer, idx) {
+    const div = document.createElement('div');
+    div.className = 'layer-item';
+    div.dataset.idx = idx;
+    const thumb = document.createElement('canvas');
+    thumb.width = 100; thumb.height = 80;
+    const tctx = thumb.getContext('2d');
+    tctx.drawImage(layer.canvas,0,0,thumb.width,thumb.height);
+    div.appendChild(thumb);
+    const controls = document.createElement('div');
+    controls.className='layer-controls';
+    const eye = document.createElement('span'); eye.innerHTML='👁️'; eye.title='Toggle visibility';
+    const trash = document.createElement('span'); trash.innerHTML='🗑️'; trash.title='Delete layer';
+    controls.appendChild(eye);
+    controls.appendChild(trash);
+    div.appendChild(controls);
+    layerListEl.appendChild(div);
+    // click handlers
+    div.addEventListener('click', e=> { if(e.target===eye||e.target===trash) return; setActiveLayer(idx);});
+    eye.addEventListener('click', e=>{ e.stopPropagation(); toggleVisibility(idx);});
+    trash.addEventListener('click', e=>{ e.stopPropagation(); deleteLayer(idx);});
+  }
+
+  function refreshLayerUI(){
+    layerListEl.innerHTML='';
+    layers.forEach((layer,i)=> addLayerUI(layer,i));
+  }
+
+  function deleteLayer(idx){
+    if(layers.length===1) return; // keep at least one
+    const layer = layers[idx];
+    canvasContainer.removeChild(layer.canvas);
+    layers.splice(idx,1);
+    if(activeLayerIdx>=layers.length) activeLayerIdx=layers.length-1;
+    refreshLayerUI();
+    saveState();
+  }
+
+  function toggleVisibility(idx){
+    const layer = layers[idx];
+    layer.visible = !layer.visible;
+    layer.canvas.style.display = layer.visible ? 'block' : 'none';
+    refreshLayerUI();
+  }
+
+  function setActiveLayer(idx){
+    activeLayerIdx = idx;
+    // highlight UI
+    const items = layerListEl.querySelectorAll('.layer-item');
+    items.forEach(item=> item.classList.toggle('active', parseInt(item.dataset.idx)===idx));
+    updateCursor();
+  }
+
+  function getActiveLayer(){
+    return layers[activeLayerIdx];
+  }
+
+  // Tool selection UI
+  tools.forEach(t=> {
+    const btn=document.getElementById('tool-'+t);
+    btn.addEventListener('click',()=>{currentTool=t; updateToolUI();});
+  });
+  function updateToolUI(){
+    tools.forEach(t=>{
+      const btn=document.getElementById('tool-'+t);
+      btn.classList.toggle('active', t===currentTool);
+    });
+  }
+  // Initialize tool UI
+  updateToolUI();
+
+  // Color palette handling
+  document.querySelectorAll('.swatch').forEach(s=>{
+    s.addEventListener('click',()=>{ const c=s.dataset.color; colorPicker.value=c; updateCurrentSwatch(); updateSwatchActive();});
+  });
+
+  // Cursor preview
+  function updateCursor(){
+    const size = parseInt(strokeWidthInput.value);
+    cursorPreview.style.width = size+'px';
+    cursorPreview.style.height = size+'px';
+    cursorPreview.style.opacity = opacityInput.value/100;
+    cursorPreview.style.borderColor = currentTool==='eraser'? '#ff0' : 'var(--accent)';
+    // Update UI displays for sliders
+    if(strokeWidthValue) strokeWidthValue.textContent = size;
+    if(opacityValue) opacityValue.textContent = opacityInput.value + '%';
+  }
+  function updateCurrentSwatch(){
+    if(currentSwatch) currentSwatch.style.background = colorPicker.value;
+  }
+  function updateSwatchActive(){
+    document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+    const active = document.querySelector('.swatch[data-color="'+colorPicker.value.toLowerCase()+'"]');
+    if(active) active.classList.add('active');
+  }
+  document.addEventListener('mousemove', e=>{
+    const rect = canvasContainer.getBoundingClientRect();
+    const x = (e.clientX - rect.left - panX)/zoom;
+    const y = (e.clientY - rect.top - panY)/zoom;
+    cursorPreview.style.left = (e.clientX)+'px';
+    cursorPreview.style.top = (e.clientY)+'px';
+  });
+
+  // Drawing state
+  let drawing = false;
+  let startX=0, startY=0;
+  let tempCanvas=null, tempCtx=null; // for preview shapes
+
+  function initTempCanvas(){
+    if(tempCanvas) return;
+    tempCanvas=document.createElement('canvas');
+    tempCanvas.width=canvasContainer.clientWidth;
+    tempCanvas.height=canvasContainer.clientHeight;
+    tempCanvas.style.position='absolute';
+    tempCanvas.style.top='0';
+    tempCanvas.style.left='0';
+    tempCanvas.style.pointerEvents='none';
+    tempCanvas.style.zIndex='1000';
+    tempCtx=tempCanvas.getContext('2d');
+    canvasContainer.appendChild(tempCanvas);
+  }
+  function clearTemp(){ if(tempCtx){ tempCtx.clearRect(0,0,tempCanvas.width,tempCanvas.height);} }
+
+  function getPos(e){
+    const rect = canvasContainer.getBoundingClientRect();
+    const rawX = (e.clientX - rect.left - panX)/zoom;
+    const rawY = (e.clientY - rect.top - panY)/zoom;
+    return {x: rawX, y: rawY};
+  }
+
+  canvasContainer.addEventListener('mousedown', e=>{
+    if(e.button===1){ // middle button for panning
+      isPanning=true; lastPan={x:e.clientX, y:e.clientY};
+      return;
+    }
+    if(e.button!==0) return; // only left click
+    const {x,y}=getPos(e);
+    drawing=true; startX=x; startY=y;
+    if(currentTool==='pen' || currentTool==='eraser'){
+      const layer=getActiveLayer();
+      const ctx=layer.ctx;
+      ctx.save();
+      ctx.globalAlpha=opacityInput.value/100;
+      ctx.lineWidth=parseInt(strokeWidthInput.value);
+      ctx.lineCap='round';
+      ctx.strokeStyle=currentTool==='eraser' ? 'rgba(0,0,0,1)' : colorPicker.value;
+      if(currentTool==='eraser') ctx.globalCompositeOperation='destination-out';
+      ctx.beginPath();
+      ctx.moveTo(x,y);
+    } else if(currentTool==='fill'){
+      floodFill(x,y);
+    } else {
+      initTempCanvas();
+    }
+  });
+
+  canvasContainer.addEventListener('mousemove', e=>{
+    if(isPanning){
+      const dx=e.clientX-lastPan.x;
+      const dy=e.clientY-lastPan.y;
+      panX+=dx; panY+=dy;
+      lastPan={x:e.clientX,y:e.clientY};
+      updateTransform();
+      return;
+    }
+    if(!drawing) return;
+    const {x,y}=getPos(e);
+    const layer=getActiveLayer();
+    const ctx=layer.ctx;
+    if(currentTool==='pen' || currentTool==='eraser'){
+      ctx.lineTo(x,y);
+      ctx.stroke();
+    } else {
+      // preview shapes on temp canvas
+      clearTemp();
+      tempCtx.save();
+      tempCtx.globalAlpha=opacityInput.value/100;
+      tempCtx.lineWidth=parseInt(strokeWidthInput.value);
+      tempCtx.strokeStyle=colorPicker.value;
+      tempCtx.setLineDash([2,2]);
+      if(currentTool==='line'){
+        tempCtx.beginPath();
+        tempCtx.moveTo(startX,startY);
+        tempCtx.lineTo(x,y);
+        tempCtx.stroke();
+      } else if(currentTool==='rect'){
+        const w=x-startX, h=y-startY;
+        tempCtx.strokeRect(startX,startY,w,h);
+      } else if(currentTool==='ellipse'){
+        const w=x-startX, h=y-startY;
+        tempCtx.beginPath();
+        tempCtx.ellipse(startX + w/2, startY + h/2, Math.abs(w/2), Math.abs(h/2), 0, 0, Math.PI*2);
+        tempCtx.stroke();
+      }
+      tempCtx.restore();
+    }
+  });
+
+  canvasContainer.addEventListener('mouseup', e=>{
+    if(isPanning && e.button===1){ isPanning=false; return; }
+    if(!drawing) return;
+    drawing=false;
+    const {x,y}=getPos(e);
+    const layer=getActiveLayer();
+    const ctx=layer.ctx;
+    if(currentTool==='pen' || currentTool==='eraser'){
+      ctx.closePath();
+      ctx.restore();
+      saveState();
+    } else {
+      // commit shape to real canvas
+      ctx.save();
+      ctx.globalAlpha=opacityInput.value/100;
+      ctx.lineWidth=parseInt(strokeWidthInput.value);
+      ctx.strokeStyle=colorPicker.value;
+      ctx.beginPath();
+      if(currentTool==='line'){
+        ctx.moveTo(startX,startY);
+        ctx.lineTo(x,y);
+        ctx.stroke();
+      } else if(currentTool==='rect'){
+        const w=x-startX, h=y-startY;
+        ctx.strokeRect(startX,startY,w,h);
+      } else if(currentTool==='ellipse'){
+        const w=x-startX, h=y-startY;
+        ctx.ellipse(startX + w/2, startY + h/2, Math.abs(w/2), Math.abs(h/2), 0, 0, Math.PI*2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      clearTemp();
+      saveState();
+    }
+  });
+
+  canvasContainer.addEventListener('mouseleave', e=>{ if(drawing && (currentTool==='pen' || currentTool==='eraser')){ const layer=getActiveLayer(); layer.ctx.closePath(); layer.ctx.restore(); drawing=false; saveState(); } });
+
+  // Zoom and pan via wheel
+  canvasContainer.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const delta = -e.deltaY;
+    const zoomFactor = delta>0 ? 1.1 : 0.9;
+    const newZoom = Math.min(4, Math.max(0.5, zoom*zoomFactor));
+    // keep mouse position stable
+    const rect = canvasContainer.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - panX)/zoom;
+    const my = (e.clientY - rect.top - panY)/zoom;
+    panX = e.clientX - rect.left - mx*newZoom;
+    panY = e.clientY - rect.top - my*newZoom;
+    zoom = newZoom;
+    updateTransform();
+    zoomDisplay.textContent = Math.round(zoom*100)+'%';
+  }, {passive:false});
+
+  // Zoom in/out button handlers
+  zoomInBtn.addEventListener('click',()=>{
+    const newZoom = Math.min(4, zoom*1.1);
+    // keep center stable
+    const rect = canvasContainer.getBoundingClientRect();
+    const mx = (rect.width/2 - panX)/zoom;
+    const my = (rect.height/2 - panY)/zoom;
+    panX = rect.width/2 - mx*newZoom;
+    panY = rect.height/2 - my*newZoom;
+    zoom = newZoom;
+    updateTransform();
+    zoomDisplay.textContent = Math.round(zoom*100)+'%';
+  });
+  zoomOutBtn.addEventListener('click',()=>{
+    const newZoom = Math.max(0.5, zoom*0.9);
+    const rect = canvasContainer.getBoundingClientRect();
+    const mx = (rect.width/2 - panX)/zoom;
+    const my = (rect.height/2 - panY)/zoom;
+    panX = rect.width/2 - mx*newZoom;
+    panY = rect.height/2 - my*newZoom;
+    zoom = newZoom;
+    updateTransform();
+    zoomDisplay.textContent = Math.round(zoom*100)+'%';
+  });
+
+  function updateTransform(){
+    const transform=`translate(${panX}px,${panY}px) scale(${zoom})`;
+    canvasContainer.style.transform = transform;
+    // also transform temp canvas if exists
+    if(tempCanvas) tempCanvas.style.transform = transform;
+  }
+
+  // History management
+  function saveState(){
+    const layer=getActiveLayer();
+    if(!layer) return;
+    // truncate redo states
+    if(layer.historyIdx < layer.history.length-1){
+      layer.history = layer.history.slice(0, layer.historyIdx+1);
+    }
+    const imgData = layer.ctx.getImageData(0,0,layer.canvas.width,layer.canvas.height);
+    layer.history.push(imgData);
+    if(layer.history.length>50) layer.history.shift(); else layer.historyIdx++;
+  }
+  function restoreState(step){
+    const layer=getActiveLayer();
+    if(!layer) return;
+    const idx = layer.historyIdx + step;
+    if(idx<0 || idx>=layer.history.length) return;
+    layer.historyIdx = idx;
+    layer.ctx.putImageData(layer.history[idx],0,0);
+  }
+  undoBtn.addEventListener('click',()=>{ restoreState(-1);});
+  redoBtn.addEventListener('click',()=>{ restoreState(1);});
+  document.addEventListener('keydown', e=>{
+    if(e.ctrlKey && e.key==='z') { e.preventDefault(); restoreState(e.shiftKey?-1: -1); }
+    if(e.ctrlKey && e.shiftKey && e.key==='Z') { e.preventDefault(); restoreState(1); }
+  });
+
+  // Clear layer
+  clearBtn.addEventListener('click',()=>{ const layer=getActiveLayer(); layer.ctx.clearRect(0,0,layer.canvas.width,layer.canvas.height); saveState();});
+
+  // Save as PNG
+  saveBtn.addEventListener('click',()=>{
+    const exportCanvas=document.createElement('canvas');
+    exportCanvas.width=canvasContainer.clientWidth;
+    exportCanvas.height=canvasContainer.clientHeight;
+    const exportCtx=exportCanvas.getContext('2d');
+    layers.forEach(l=>{ if(l.visible){ exportCtx.drawImage(l.canvas,0,0); } });
+    const link=document.createElement('a');
+    link.download='drawing.png';
+    link.href=exportCanvas.toDataURL();
+    link.click();
+  });
+
+  // Opacity and width UI updates
+  strokeWidthInput.addEventListener('input', updateCursor);
+  opacityInput.addEventListener('input', updateCursor);
+
+  // Add initial layer
+  createLayer('Layer 1');
+  // Initialize color UI
+  updateCurrentSwatch();
+  updateSwatchActive();
+  // Add layer button
+  addLayerBtn.addEventListener('click',()=>{ createLayer('Layer '+(layers.length+1));});
+
+  // Resize handling
+  window.addEventListener('resize',()=>{
+    const w=canvasContainer.clientWidth, h=canvasContainer.clientHeight;
+    layers.forEach(l=>{ const oldW=l.canvas.width, oldH=l.canvas.height; const oldImg=l.ctx.getImageData(0,0,oldW,oldH);
+      l.canvas.width=w; l.canvas.height=h; l.ctx.putImageData(oldImg,0,0);
+    });
+    if(tempCanvas){ tempCanvas.width=w; tempCanvas.height=h; }
+  });
+
+  // Flood fill algorithm
+  function floodFill(startX,startY){
+    const layer=getActiveLayer();
+    const ctx=layer.ctx;
+    const imgData=ctx.getImageData(0,0,layer.canvas.width,layer.canvas.height);
+    const data=imgData.data;
+    const width=layer.canvas.width;
+    const height=layer.canvas.height;
+    const targetColor=hexToRgba(colorPicker.value);
+    const startIdx=(Math.floor(startY)*width+Math.floor(startX))*4;
+    const startColor=[data[startIdx],data[startIdx+1],data[startIdx+2],data[startIdx+3]];
+    if(colorsMatch(startColor,targetColor)) return;
+    const stack=[[Math.floor(startX),Math.floor(startY)]];
+    while(stack.length){
+      const [x,y]=stack.pop();
+      const idx=(y*width+x)*4;
+      const curColor=[data[idx],data[idx+1],data[idx+2],data[idx+3]];
+      if(!colorsMatch(curColor,startColor)) continue;
+      // set pixel
+      data[idx]=targetColor[0]; data[idx+1]=targetColor[1]; data[idx+2]=targetColor[2]; data[idx+3]=targetColor[3];
+      if(x>0) stack.push([x-1,y]);
+      if(x<width-1) stack.push([x+1,y]);
+      if(y>0) stack.push([x,y-1]);
+      if(y<height-1) stack.push([x,y+1]);
+    }
+    ctx.putImageData(imgData,0,0);
+    saveState();
+  }
+
+  function hexToRgba(hex){
+    const c=hex.startsWith('#')?hex.slice(1):hex;
+    const bigint=parseInt(c,16);
+    let r,g,b;
+    if(c.length===3){ r=(bigint>>8)&0xF; g=(bigint>>4)&0xF; b=bigint&0xF; r=r*17; g=g*17; b=b*17; }
+    else { r=(bigint>>16)&0xFF; g=(bigint>>8)&0xFF; b=bigint&0xFF; }
+    const a=Math.round((opacityInput.value/100)*255);
+    return [r,g,b,a];
+  }
+  function colorsMatch(a,b){ return a[0]===b[0] && a[1]===b[1] && a[2]===b[2] && a[3]===b[3]; }
+
+})();
+</script>
+</body>
+</html>

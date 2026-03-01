@@ -10,14 +10,18 @@ export function registerMessageTool(server: McpServer) {
       action: z.enum(["list", "get"]),
       sessionId: z.string().describe("Session ID"),
       messageId: z.string().optional().describe("Message ID (required for get)"),
+      limit: z.number().optional().describe("Max messages to return (list only)"),
     },
-    async ({ action, sessionId, messageId }) => {
+    async ({ action, sessionId, messageId, limit }) => {
       try {
         const client = await getClient();
 
         switch (action) {
           case "list": {
-            const messages = await client.session.messages({ path: { id: sessionId } });
+            const messages = await client.session.messages({
+              path: { id: sessionId },
+              ...(limit ? { query: { limit } } : {}),
+            });
             return { content: [{ type: "text" as const, text: JSON.stringify(messages) }] };
           }
           case "get": {
