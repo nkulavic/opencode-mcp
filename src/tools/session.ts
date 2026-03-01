@@ -5,7 +5,7 @@ import { getClient } from "../client.js";
 export function registerSessionTool(server: McpServer) {
   server.tool(
     "opencode_session",
-    "Manage OpenCode coding agent sessions. START HERE: use action 'create' to get a session ID, then 'prompt' to send coding tasks. The agent has full file access (read/write/edit/bash). Use 'revert' to undo bad changes, 'abort' to stop a running task, 'summarize' to get a session recap. Always reuse session IDs for related work — the agent retains context across prompts.",
+    "Manage OpenCode coding agent sessions. START HERE: use action 'create' to get a session ID, then 'prompt' to send coding tasks. The agent has full file access (read/write/edit/bash). Use 'model' and 'provider' params on prompt to switch models on the fly (e.g. model='gpt-oss-120b' for speed, model='zai-glm-4.7' for quality). Use 'revert' to undo bad changes, 'abort' to stop a running task, 'summarize' to get a session recap. Always reuse session IDs for related work.",
     {
       action: z.enum([
         "create", "get", "list", "children", "update", "delete",
@@ -14,9 +14,11 @@ export function registerSessionTool(server: McpServer) {
       ]),
       id: z.string().optional().describe("Session ID (required for most actions except create/list)"),
       content: z.string().optional().describe("Prompt content, command, or shell command"),
+      model: z.string().optional().describe("Model ID to use (e.g. 'gpt-oss-120b', 'zai-glm-4.7', 'llama3.1-8b'). Overrides the default model for this prompt."),
+      provider: z.string().optional().describe("Provider ID (e.g. 'cerebras', 'opencode'). Required when specifying model."),
       body: z.record(z.unknown()).optional().describe("Additional body parameters"),
     },
-    async ({ action, id, content, body }) => {
+    async ({ action, id, content, model, provider, body }) => {
       try {
         const client = await getClient();
 
@@ -96,12 +98,14 @@ export function registerSessionTool(server: McpServer) {
           case "prompt": {
             if (!id) throw new Error("Session ID required");
             if (!content) throw new Error("Content required for prompt");
+            const promptBody = {
+              ...(body as Record<string, unknown>),
+              parts: [{ type: "text" as const, text: content }],
+              ...(model ? { model: { modelID: model, providerID: provider ?? "cerebras" } } : {}),
+            };
             const result = await client.session.prompt({
               path: { id },
-              body: {
-                parts: [{ type: "text" as const, text: content }],
-                ...(body as Record<string, unknown>),
-              },
+              body: promptBody as typeof promptBody & { parts: [{ type: "text"; text: string }] },
             });
             return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
           }
