@@ -24,9 +24,11 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.mjs",
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "setup": "npm install && npm run build && node scripts/postinstall.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

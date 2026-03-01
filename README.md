@@ -22,7 +22,6 @@ Claude plans and reviews. OpenCode generates code at 2,000+ tokens/sec. You get 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) 18+
-- [OpenCode](https://opencode.ai) — `brew install opencode-ai/tap/opencode`
 - A provider API key (e.g., [Cerebras](https://cloud.cerebras.ai))
 
 ### Install
@@ -30,17 +29,13 @@ Claude plans and reviews. OpenCode generates code at 2,000+ tokens/sec. You get 
 ```bash
 git clone https://github.com/nkulavic/opencode-mcp.git
 cd opencode-mcp
-npm install
-npm run build
+cp .env.example .env   # Add your API key
+npm run setup          # Installs deps (including OpenCode CLI), builds, and verifies
 ```
 
-### Configure
+The `opencode-ai` npm package is included as a dependency — `npm install` automatically downloads the OpenCode CLI binary for your platform. No separate install needed.
 
-```bash
-cp .env.example .env
-# Edit .env and add your API key:
-# CEREBRAS_API_KEY=your-key-here
-```
+> **Already have OpenCode installed globally?** That works too. `start.sh` checks the local `node_modules/.bin/opencode` first, then falls back to your global install.
 
 ### Add to Claude Code
 

@@ -15,9 +15,27 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Check if opencode binary exists
-if ! command -v opencode &>/dev/null; then
-  echo "Error: opencode not found in PATH. Install with: brew install opencode-ai/tap/opencode" >&2
+# Find opencode binary — check local node_modules first, then PATH
+OPENCODE=""
+if [ -x "${SCRIPT_DIR}/node_modules/.bin/opencode" ]; then
+  OPENCODE="${SCRIPT_DIR}/node_modules/.bin/opencode"
+elif command -v opencode &>/dev/null; then
+  OPENCODE="opencode"
+fi
+
+if [ -z "$OPENCODE" ]; then
+  echo "Error: opencode not found." >&2
+  echo "" >&2
+  echo "Install it by running one of:" >&2
+  echo "  npm install          (in this directory — installs as a dependency)" >&2
+  echo "  npm install -g opencode-ai   (global install)" >&2
+  echo "  brew install opencode-ai/tap/opencode" >&2
+  exit 1
+fi
+
+# Check if dist/index.js exists (project needs to be built)
+if [ ! -f "${SCRIPT_DIR}/dist/index.js" ]; then
+  echo "Error: dist/index.js not found. Run 'npm run build' first." >&2
   exit 1
 fi
 
@@ -28,7 +46,7 @@ if curl -sf "${BASE_URL}/session" >/dev/null 2>&1; then
 fi
 
 # Start OpenCode server in the background
-opencode serve --hostname="$HOST" --port="$PORT" &>/dev/null &
+"$OPENCODE" serve --hostname="$HOST" --port="$PORT" &>/dev/null &
 OC_PID=$!
 
 # Wait for server to be ready (up to 10 seconds)
