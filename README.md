@@ -2,35 +2,44 @@
 
 An MCP server that gives Claude Code access to fast AI coding agents — letting it delegate code generation to models running at 2,000+ tokens/sec on Cerebras while it focuses on what it's best at: planning, reviewing, and reasoning.
 
+```mermaid
+graph LR
+    A["Claude Code<br/>(Opus)"] -->|MCP| B["opencode-mcp<br/>(bridge)"]
+    B -->|SDK| C["OpenCode<br/>(agent)"]
+    C -->|API| D["Cerebras<br/>(2,000+ tok/s)"]
+    style A fill:#6C5CE7,color:#fff,stroke:none
+    style B fill:#00CEC9,color:#fff,stroke:none
+    style C fill:#00B894,color:#fff,stroke:none
+    style D fill:#FDCB6E,color:#333,stroke:none
 ```
-Claude Code (Opus) ──MCP──▶ opencode-mcp ──SDK──▶ OpenCode ──API──▶ Cerebras / any provider
-   orchestrator                bridge              agent           fast inference
-```
+
+---
 
 ## Why I Built This
 
-Claude Code is the best coding agent I've used. It plans well, catches subtle bugs, writes production-quality code, and reasons through complex architectures. But it's slow. A feature that takes Claude 5-10 minutes to generate can be drafted by a fast model in 2 seconds.
+Claude Code is the best coding agent I've used. It plans well, catches subtle bugs, writes production-quality code, and reasons through complex architectures. But it's slow — a feature that takes Claude 5-10 minutes to generate can be drafted by a fast model in 2 seconds.
 
-Meanwhile, fast open-source models on Cerebras (gpt-oss-120b, zai-glm-4.7) can generate hundreds of lines of working code almost instantly — but they make mistakes. Operator precedence bugs, missing edge cases, security issues, rough UX. They're fast but not careful.
+Meanwhile, fast open-source models on Cerebras (gpt-oss-120b, zai-glm-4.7) generate hundreds of lines of working code almost instantly — but they make mistakes. Operator precedence bugs, missing edge cases, security issues, rough UX. They're fast but not careful.
 
-The insight: **these aren't competing approaches — they're complementary.** A fast model generates 80% of the code in seconds. Claude catches the bugs, fixes the security issues, and polishes the UX. You get Claude-quality output at near-Cerebras speed.
+**The insight: these aren't competing approaches — they're complementary.**
 
-This project makes that workflow seamless. It bridges [OpenCode](https://opencode.ai) (an open-source coding agent) to Claude Code via [MCP](https://modelcontextprotocol.io) (Model Context Protocol), so Claude can delegate tasks to fast models without leaving the conversation.
+```mermaid
+graph TD
+    subgraph "Without opencode-mcp"
+        X1["Claude Code alone"] -.->|"Slow (minutes)"| X2["Excellent quality"]
+        X3["Fast model alone"] -.->|"Instant (seconds)"| X4["Good but buggy"]
+    end
+    subgraph "With opencode-mcp"
+        Y1["Fast model drafts"] -->|"~2 seconds"| Y2["80% complete, has bugs"]
+        Y2 --> Y3["Claude reviews + polishes"]
+        Y3 -->|"minutes"| Y4["Excellent quality"]
+    end
+    style Y4 fill:#00B894,color:#fff,stroke:none
+    style X2 fill:#6C5CE7,color:#fff,stroke:none
+    style X4 fill:#FDCB6E,color:#333,stroke:none
+```
 
-### The Problem It Solves
-
-Without this tool, you pick one:
-
-| Approach | Speed | Quality | Cost |
-|----------|-------|---------|------|
-| Claude Code alone | Slow (minutes) | Excellent | High |
-| Fast model alone | Instant (seconds) | Good but buggy | Low |
-
-With this tool, you get both:
-
-| Approach | Speed | Quality | Cost |
-|----------|-------|---------|------|
-| Fast model drafts + Claude reviews | Fast (seconds + review) | Excellent | Low |
+A fast model generates 80% of the code in seconds. Claude catches the bugs, fixes the security issues, and polishes the UX. You get Claude-quality output at near-Cerebras speed.
 
 ### Real Numbers
 
@@ -44,100 +53,75 @@ From actual testing during development:
 
 The fast model does the heavy lifting. Claude does the thinking.
 
+---
+
 ## How It Works
 
-### The Stack
+### Architecture
 
-There are four layers:
+Four layers, each with a clear responsibility:
 
-1. **Claude Code** (the orchestrator) — you talk to this. It plans, breaks tasks down, reviews code, catches bugs, and decides what to do next. It calls the MCP tools to delegate work.
-
-2. **opencode-mcp** (this project) — a Node.js MCP server that translates Claude's tool calls into OpenCode SDK calls. It exposes 12 tools covering the full OpenCode API surface. Runs as a stdio process managed by Claude Code.
-
-3. **OpenCode** (the coding agent) — an open-source AI coding agent with full repo access. It can read files, write files, edit files, run shell commands, and manage sessions. It runs as a local HTTP server (`opencode serve`).
-
-4. **Inference providers** (the muscle) — Cerebras, or any OpenCode-compatible provider. Cerebras runs open-source models at 2,000+ tokens/sec on custom hardware. You can swap providers or models per-prompt.
-
-### The Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  You                                                         │
-│  "Build me a finance dashboard"                              │
-└─────────────────────┬────────────────────────────────────────┘
-                      │
-┌─────────────────────▼────────────────────────────────────────┐
-│  Claude Code (Opus)                                          │
-│                                                              │
-│  1. Plans the approach                                       │
-│  2. Creates an OpenCode session via MCP                      │
-│  3. Sends a detailed prompt to gpt-oss-120b on Cerebras      │
-│  4. Reviews the generated code                               │
-│  5. Identifies bugs and UX issues                            │
-│  6. Sends fix prompts or rewrites directly                   │
-│  7. Repeats until production quality                         │
-│                                                              │
-│  Tools used: opencode_session, opencode_file, opencode_find  │
-└─────────────────────┬────────────────────────────────────────┘
-                      │ MCP (stdio)
-┌─────────────────────▼────────────────────────────────────────┐
-│  opencode-mcp (this project)                                 │
-│                                                              │
-│  - 12 tools covering full OpenCode SDK                       │
-│  - Zod schema validation on every call                       │
-│  - Connect-only client with retry logic                      │
-│  - Singleton connection, lazy initialization                 │
-│                                                              │
-│  src/tools/session.ts  — 22 actions (prompt, revert, diff…)  │
-│  src/tools/file.ts     — read, status, list                  │
-│  src/tools/find.ts     — grep, file search, symbol search    │
-│  src/tools/project.ts  — project info, agents, vcs           │
-│  src/tools/provider.ts — model/provider management           │
-│  … and 7 more                                                │
-└─────────────────────┬────────────────────────────────────────┘
-                      │ HTTP (localhost:4096)
-┌─────────────────────▼────────────────────────────────────────┐
-│  OpenCode Server (opencode serve)                            │
-│                                                              │
-│  - Session-based coding agent                                │
-│  - Full repo access: read, write, edit, bash                 │
-│  - Context retention across prompts                          │
-│  - Revert/unrevert for safe iteration                        │
-│  - Dynamic model switching per-prompt                        │
-└─────────────────────┬────────────────────────────────────────┘
-                      │ API
-┌─────────────────────▼────────────────────────────────────────┐
-│  Cerebras (or any provider)                                  │
-│                                                              │
-│  - gpt-oss-120b: 2,000+ tok/sec                             │
-│  - zai-glm-4.7: fast reasoning model                        │
-│  - Any model OpenCode supports                               │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Layer 1 — You"
+        U["'Build me a finance dashboard'"]
+    end
+    subgraph "Layer 2 — Claude Code (Opus)"
+        C1["Plans the approach"]
+        C2["Creates OpenCode session"]
+        C3["Sends prompt to Cerebras"]
+        C4["Reviews generated code"]
+        C5["Identifies bugs & UX gaps"]
+        C6["Polishes to production quality"]
+        C1 --> C2 --> C3 --> C4 --> C5 --> C6
+    end
+    subgraph "Layer 3 — opencode-mcp (this project)"
+        M["12 MCP tools • Zod validation • Singleton client"]
+    end
+    subgraph "Layer 4 — OpenCode Server"
+        O["Session management • File read/write/edit • Shell commands"]
+    end
+    subgraph "Layer 5 — Inference"
+        I["Cerebras • gpt-oss-120b • zai-glm-4.7 • Any provider"]
+    end
+    U --> C1
+    C6 -.->|"deliver"| U
+    C2 -->|"MCP stdio"| M
+    C3 -->|"MCP stdio"| M
+    C4 -->|"MCP stdio"| M
+    M -->|"HTTP :4096"| O
+    O -->|"API"| I
+    style U fill:#f8f9fa,color:#333,stroke:#ddd
+    style M fill:#00CEC9,color:#fff,stroke:none
+    style O fill:#00B894,color:#fff,stroke:none
+    style I fill:#FDCB6E,color:#333,stroke:none
 ```
 
-### How Sessions Work
+### Session Lifecycle
 
-Sessions are the core concept. A session is a persistent conversation with the coding agent:
+Sessions are the core concept — a persistent conversation with the coding agent that retains context across prompts:
 
+```mermaid
+graph TD
+    A["opencode_session create"] -->|"returns session ID"| B["opencode_session prompt"]
+    B -->|"agent generates code"| C["Files change on disk"]
+    C --> D{"Review the code"}
+    D -->|"Good"| E["Send next prompt<br/>(agent remembers context)"]
+    D -->|"Bad"| F["opencode_session revert"]
+    F --> G["Send improved prompt"]
+    E --> B
+    G --> B
+    style A fill:#6C5CE7,color:#fff,stroke:none
+    style D fill:#FDCB6E,color:#333,stroke:none
+    style E fill:#00B894,color:#fff,stroke:none
+    style F fill:#E17055,color:#fff,stroke:none
 ```
-Create session → Get session ID
-    │
-    ▼
-Send prompt (with session ID) → Agent generates code → Files change on disk
-    │
-    ▼
-Review changes (read files, check diff, check status)
-    │
-    ├─ Good → Send next prompt (same session, agent remembers context)
-    │
-    └─ Bad → Revert changes → Send new prompt with feedback
-```
 
-The agent retains full context within a session. If you say "make the header blue" in prompt #3, it remembers what header you're talking about from prompt #1. This is what makes iteration fast — you don't re-explain context each time.
+If you say "make the header blue" in prompt #3, the agent remembers what header you're talking about from prompt #1. This makes iteration fast — you don't re-explain context each time.
 
 ### Dynamic Model Switching
 
-You can change models per-prompt without touching config:
+Change models per-prompt without touching config:
 
 ```
 // Default model (from opencode.json)
@@ -150,7 +134,9 @@ opencode_session prompt model="zai-glm-4.7" provider="cerebras"
 opencode_session prompt model="llama3.1-8b" provider="cerebras"
 ```
 
-This lets Claude pick the right model for each task: a fast model for boilerplate, a reasoning model for complex logic, or the default for everything else.
+Claude picks the right model for each task — fast model for boilerplate, reasoning model for complex logic.
+
+---
 
 ## Quickstart
 
@@ -165,18 +151,22 @@ This lets Claude pick the right model for each task: a fast model for boilerplat
 git clone https://github.com/nkulavic/opencode-mcp.git
 cd opencode-mcp
 cp .env.example .env   # Add your API key
-npm run setup          # Installs deps, builds, and prompts to install Claude Code skills
+npm run setup          # Installs deps, builds, verifies, and prompts for skill install
 ```
 
-`npm run setup` does everything:
-1. Installs dependencies (including the OpenCode CLI binary for your platform)
-2. Builds the TypeScript
-3. Verifies your environment (OpenCode, .env, build)
-4. Prompts you to install Claude Code skills (`/opencode` and `/opencode-build`)
+```mermaid
+graph LR
+    A["npm run setup"] --> B["npm install<br/>(+ OpenCode CLI)"]
+    B --> C["tsc build"]
+    C --> D["Environment check"]
+    D --> E["Install skills?<br/>(interactive prompt)"]
+    style A fill:#6C5CE7,color:#fff,stroke:none
+    style E fill:#00CEC9,color:#fff,stroke:none
+```
+
+`npm install` automatically downloads the OpenCode CLI binary for your platform via the `opencode-ai` npm package. No separate install needed.
 
 > **Already have OpenCode installed globally?** That works too. `start.sh` checks `node_modules/.bin/opencode` first, then falls back to your global install.
-
-> **Install skills separately?** Run `npm run install-skills` anytime to add the slash commands to Claude Code.
 
 ### Add to Claude Code
 
@@ -193,11 +183,22 @@ Add to your Claude Code MCP settings (`~/.claude/settings.json` or project `.mcp
 ```
 
 `start.sh` handles the full lifecycle:
-1. Finds the `opencode` binary (local or global)
-2. Checks if `opencode serve` is already running
-3. If not, starts it in the background and waits for it to be ready
-4. Launches the MCP server on stdio
-5. Cleans up the OpenCode server process on exit
+
+```mermaid
+graph TD
+    A["start.sh"] --> B{"opencode binary<br/>found?"}
+    B -->|"node_modules/.bin"| C["Use local"]
+    B -->|"global PATH"| C
+    B -->|"not found"| X["Error: install instructions"]
+    C --> D{"opencode serve<br/>already running?"}
+    D -->|"yes"| F["Launch MCP server"]
+    D -->|"no"| E["Start opencode serve<br/>in background"]
+    E --> G["Wait for ready<br/>(up to 10s)"]
+    G --> F
+    F --> H["stdio transport<br/>to Claude Code"]
+    style X fill:#E17055,color:#fff,stroke:none
+    style H fill:#00B894,color:#fff,stroke:none
+```
 
 ### Verify It Works
 
@@ -213,9 +214,112 @@ Claude will:
 4. Report back
 ```
 
+---
+
+## Claude Code Skills
+
+The project includes two optional skills (slash commands) that teach Claude how to use the MCP tools effectively.
+
+Install during setup or anytime with:
+
+```bash
+npm run install-skills
+```
+
+The installer prompts you to choose where to install:
+
+```
+  Where would you like to install the skills?
+
+  1. Global (~/.claude/skills/ — available in all projects)
+  2. This project only (.claude/skills/ — only this repo)
+  3. Both
+  4. Cancel
+```
+
+### `/opencode` — Delegation Guidance
+
+An always-on advisor that helps Claude decide when to delegate vs write directly.
+
+```mermaid
+graph TD
+    A["Claude is about to<br/>write code"] --> B{"How much code?"}
+    B -->|"> 30 lines"| C["Delegate to OpenCode"]
+    B -->|"< 30 lines"| D["Write directly"]
+    C --> E["Create/reuse session"]
+    E --> F["Write specific prompt"]
+    F --> G["Send to fast model"]
+    G --> H["Review output"]
+    H --> I{"Quality?"}
+    I -->|"Good"| J["Accept & continue"]
+    I -->|"Bad"| K["Revert & re-prompt"]
+    D --> L["Use Edit/Write tool"]
+    style C fill:#00CEC9,color:#fff,stroke:none
+    style D fill:#6C5CE7,color:#fff,stroke:none
+    style J fill:#00B894,color:#fff,stroke:none
+    style K fill:#E17055,color:#fff,stroke:none
+```
+
+**What it provides:**
+- **Decision heuristic** — delegate for new files, boilerplate, tests, scaffolding. Write directly for small edits, config, security-critical code.
+- **Prompt engineering** — how to write specific prompts that produce good output from fast models.
+- **Review checklist** — what bugs to look for: operator precedence, XSS, missing accessibility, timezone issues.
+- **Session management** — reuse sessions, fork for alternatives, summarize long sessions.
+
+### `/opencode-build` — Team Build Pipeline
+
+Runs the full "fast draft + Claude polish" workflow end to end. Just describe what you want.
+
+```mermaid
+graph TD
+    A["User: 'Build me a<br/>weather dashboard'"] --> B["Phase 1: SPEC<br/>Claude writes detailed spec"]
+    B --> C["Phase 2: DRAFT<br/>OpenCode generates in ~2s"]
+    C --> D["Phase 3: REVIEW<br/>Claude reads every line"]
+    D --> E{"Bugs found?"}
+    E -->|"Always yes"| F["Operator precedence<br/>XSS vulnerabilities<br/>Missing accessibility<br/>Rough visual design"]
+    F --> G["Phase 4: POLISH<br/>Claude rewrites to<br/>production quality"]
+    G --> H["Deliver finished product"]
+    style A fill:#f8f9fa,color:#333,stroke:#ddd
+    style C fill:#FDCB6E,color:#333,stroke:none
+    style D fill:#6C5CE7,color:#fff,stroke:none
+    style G fill:#00B894,color:#fff,stroke:none
+    style H fill:#00CEC9,color:#fff,stroke:none
+```
+
+**The pipeline:**
+1. **Spec** — Claude writes a detailed specification from your description
+2. **Draft** — Sends to gpt-oss-120b on Cerebras (~2s generation, 300-500 lines)
+3. **Review** — Claude reads every line, identifies bugs, security issues, UX gaps
+4. **Polish** — Claude rewrites with animations, accessibility, responsive design, micro-interactions
+
+---
+
 ## Tools Reference
 
 12 tools covering the full OpenCode SDK (~62 methods across 12 namespaces).
+
+```mermaid
+graph LR
+    subgraph "Core Workflow"
+        S["opencode_session<br/>22 actions"]
+        MSG["opencode_message"]
+        F["opencode_file"]
+        FIND["opencode_find"]
+    end
+    subgraph "Config & Auth"
+        P["opencode_project"]
+        CFG["opencode_config"]
+        AUTH["opencode_auth"]
+        PROV["opencode_provider"]
+    end
+    subgraph "Advanced"
+        T["opencode_tool"]
+        MCP["opencode_mcp_server"]
+        PTY["opencode_pty"]
+        INS["opencode_instructions"]
+    end
+    style S fill:#6C5CE7,color:#fff,stroke:none
+```
 
 ### Core Workflow Tools
 
@@ -246,12 +350,12 @@ Claude will:
 
 ### Full Session Actions
 
-The `opencode_session` tool has 22 actions — here's what each does:
+The `opencode_session` tool has 22 actions:
 
 | Action | Purpose |
 |--------|---------|
 | `create` | Start a new session. Returns a session ID. |
-| `prompt` | Send a coding task. The agent generates code. |
+| `prompt` | Send a coding task. The agent generates code. Accepts `model` + `provider` for dynamic switching. |
 | `promptAsync` | Send a task without waiting for completion. |
 | `revert` | Undo changes from a specific message. Pass `messageId`. |
 | `unrevert` | Undo a revert. |
@@ -272,99 +376,146 @@ The `opencode_session` tool has 22 actions — here's what each does:
 | `todo` | Get the session's todo list. |
 | `permission` | Respond to tool permission requests (once/always/reject). |
 
+---
+
 ## Workflows
 
 ### Basic: Delegate and Review
 
-The simplest pattern — send a task, review the result:
+```mermaid
+sequenceDiagram
+    participant You
+    participant Claude
+    participant OpenCode
+    participant Cerebras
 
-```
-1. opencode_session create → session ID
-2. opencode_session prompt "Create a REST API at src/api/users.ts with GET/POST/DELETE endpoints"
-3. Read src/api/users.ts → review the code
-4. If good → done
-5. If bad → opencode_session revert → opencode_session prompt "Fix: the DELETE endpoint doesn't validate the ID param"
+    You->>Claude: "Create a REST API for users"
+    Claude->>OpenCode: session.create()
+    OpenCode-->>Claude: session ID
+    Claude->>OpenCode: session.prompt("Create REST API at src/api/users.ts...")
+    OpenCode->>Cerebras: Generate code
+    Cerebras-->>OpenCode: 200 lines in ~2s
+    OpenCode-->>Claude: Done
+    Claude->>Claude: Read & review generated code
+    Claude-->>You: "Here's what was generated, I found 2 issues and fixed them"
 ```
 
 ### Team: Fast Draft + Claude Polish
 
-The most powerful pattern. A fast model generates code instantly, Claude elevates it to production quality:
+The most powerful pattern — used by the `/opencode-build` skill:
 
-```
-1. opencode_session create
-2. opencode_session prompt (gpt-oss-120b) → "Build a dashboard with charts and dark mode"
-   └─ 2 seconds, 300+ lines generated
-3. Claude reads the code, finds:
-   - Operator precedence bug in toggle logic
-   - XSS vulnerability via innerHTML
-   - No keyboard accessibility
-   - Rough visual design
-4. Claude rewrites the file directly with:
-   - All bugs fixed
-   - Glassmorphism UI, animated charts, responsive grid
-   - Proper error handling and accessibility
-   └─ 1,600+ lines, production quality
+```mermaid
+sequenceDiagram
+    participant You
+    participant Claude
+    participant OpenCode
+    participant Cerebras
+
+    You->>Claude: "Build me a finance dashboard"
+    Note over Claude: Phase 1: Write detailed spec
+    Claude->>OpenCode: session.create()
+    OpenCode-->>Claude: session ID
+
+    Note over Claude,Cerebras: Phase 2: Fast draft (~2s)
+    Claude->>OpenCode: session.prompt(spec, model="gpt-oss-120b")
+    OpenCode->>Cerebras: Generate
+    Cerebras-->>OpenCode: 308 lines, 2 seconds
+    OpenCode-->>Claude: Done
+
+    Note over Claude: Phase 3: Deep review
+    Claude->>Claude: Read every line
+    Note over Claude: Found: 9 bugs, XSS vuln,<br/>no keyboard nav, rough UX
+
+    Note over Claude: Phase 4: Polish & rewrite
+    Claude->>Claude: Rewrite with production UX
+    Note over Claude: 1,684 lines, glassmorphism,<br/>animations, accessibility
+
+    Claude-->>You: "Done! 2s draft → found 9 bugs → polished to production quality"
 ```
 
 ### Parallel: Multiple Models
 
-Send the same task to multiple models and compare:
-
-```
-Session A → gpt-oss-120b → fast, concise output
-Session B → zai-glm-4.7  → different approach, more verbose
-Session C → Claude direct → highest quality, slowest
-
-Compare outputs, pick the best, iterate from there.
-```
-
-### Iterative: Restyle and Refine
-
-Use OpenCode for rapid iteration — send fix prompts and the agent applies them in seconds:
-
-```
-1. Generate initial version (2s)
-2. "Make the toolbar wider with icon sections" (1.5s)
-3. "Add a gradient header and pill-shaped toggle" (1.8s)
-4. "Fix the chart colors for dark mode" (1.2s)
+```mermaid
+graph LR
+    A["Same spec"] --> B["Session A<br/>gpt-oss-120b"]
+    A --> C["Session B<br/>zai-glm-4.7"]
+    A --> D["Session C<br/>Claude direct"]
+    B --> E["Compare"]
+    C --> E
+    D --> E
+    E --> F["Pick best,<br/>iterate"]
+    style B fill:#FDCB6E,color:#333,stroke:none
+    style C fill:#00CEC9,color:#fff,stroke:none
+    style D fill:#6C5CE7,color:#fff,stroke:none
 ```
 
-Each prompt builds on the session context. The agent remembers everything.
+### Iterative: Rapid Refinement
+
+Each prompt builds on session context — the agent remembers everything:
+
+```mermaid
+graph LR
+    A["Generate v1<br/>(2s)"] --> B["'Wider toolbar<br/>with icons' (1.5s)"]
+    B --> C["'Gradient header,<br/>pill toggle' (1.8s)"]
+    C --> D["'Fix dark mode<br/>chart colors' (1.2s)"]
+    style A fill:#E17055,color:#fff,stroke:none
+    style B fill:#FDCB6E,color:#333,stroke:none
+    style C fill:#00CEC9,color:#fff,stroke:none
+    style D fill:#00B894,color:#fff,stroke:none
+```
+
+---
 
 ## Examples
 
-The `examples/` directory contains apps built during development to test the MCP bridge. Each is a single HTML file you can open directly in a browser.
+The `examples/` directory contains apps built during development. Each is a single HTML file — open directly in a browser.
 
-### Direct Comparisons
+### How Each Example Was Built
 
-These pairs show the same app built two ways:
+```mermaid
+graph TD
+    subgraph "Direct Comparisons"
+        K1["kanban-opencode"] ---|"vs"| K2["kanban-direct"]
+        D1["drawing-gpt-oss"] ---|"vs"| D3["drawing-claude"]
+        D2["drawing-glm"] ---|"vs"| D3
+    end
+    subgraph "Team Workflow (draft → polish)"
+        F1["finance-dashboard<br/>gpt-oss-120b → Claude"]
+        F2["finance-dashboard-glm<br/>zai-glm-4.7 → Claude"]
+        S1["spreadsheet<br/>gpt-oss-120b → Claude"]
+    end
+    subgraph "Single Model"
+        T1["todo-app<br/>gpt-oss-120b"]
+    end
+    style K1 fill:#FDCB6E,color:#333,stroke:none
+    style K2 fill:#6C5CE7,color:#fff,stroke:none
+    style D1 fill:#FDCB6E,color:#333,stroke:none
+    style D2 fill:#00CEC9,color:#fff,stroke:none
+    style D3 fill:#6C5CE7,color:#fff,stroke:none
+    style F1 fill:#00B894,color:#fff,stroke:none
+    style F2 fill:#00B894,color:#fff,stroke:none
+    style S1 fill:#00B894,color:#fff,stroke:none
+```
 
-| App | Via OpenCode (Cerebras) | Via Claude (Direct) |
-|-----|------------------------|-------------------|
-| Kanban Board | `kanban-opencode/` | `kanban-direct/` |
-| Drawing App | `drawing-gpt-oss/`, `drawing-glm/` | `drawing-claude/` |
+| Example | Build Method | Draft Time | Final Lines |
+|---------|-------------|------------|-------------|
+| `finance-dashboard/` | Team: gpt-oss-120b → Claude polish | ~2s | 1,684 |
+| `finance-dashboard-glm/` | Team: zai-glm-4.7 → Claude polish | ~2.5s | 1,318 |
+| `spreadsheet/` | Team: gpt-oss-120b → Claude review | ~2s | 544 |
+| `kanban-opencode/` | OpenCode (gpt-oss-120b) | ~2s | — |
+| `kanban-direct/` | Claude directly | ~5min | — |
+| `drawing-gpt-oss/` | OpenCode (gpt-oss-120b), restyled | ~1.4s | — |
+| `drawing-glm/` | OpenCode (zai-glm-4.7), restyled | ~2.3s | — |
+| `drawing-claude/` | Claude directly | ~7.5min | — |
+| `todo-app/` | OpenCode (gpt-oss-120b) | ~2s | — |
 
-### Team Workflow Results
-
-These were built using the "fast draft + Claude polish" pattern:
-
-| App | Draft Model | Draft Time | Final Lines |
-|-----|------------|------------|-------------|
-| `finance-dashboard/` | gpt-oss-120b | ~2s | 1,684 |
-| `finance-dashboard-glm/` | zai-glm-4.7 | ~2.5s | 1,318 |
-| `spreadsheet/` | gpt-oss-120b | ~2s | 544 |
-
-### Single-Model Examples
-
-| App | Model | Notes |
-|-----|-------|-------|
-| `todo-app/` | gpt-oss-120b | Drag-and-drop, filters, localStorage |
+---
 
 ## Configuration
 
 ### `opencode.json`
 
-Controls the default model and provider. This file lives in your project root:
+Controls the default model and provider:
 
 ```json
 {
@@ -377,18 +528,13 @@ Controls the default model and provider. This file lives in your project root:
       "description": "Fast coding agent powered by Cerebras gpt-oss-120b",
       "mode": "primary",
       "model": "cerebras/gpt-oss-120b",
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true
-      }
+      "tools": { "read": true, "write": true, "edit": true, "bash": true }
     }
   }
 }
 ```
 
-You can define multiple agents with different models and select them per-prompt using the `agent` parameter.
+You can define multiple agents with different models and select them per-prompt with the `agent` parameter.
 
 ### Environment Variables
 
@@ -400,11 +546,9 @@ You can define multiple agents with different models and select them per-prompt 
 
 ### Using Other Providers
 
-OpenCode supports multiple providers. To use a different one:
+OpenCode supports multiple providers. To use a different one, add the provider to `opencode.json`, set the API key in `.env`, and either change the default model or use dynamic switching per-prompt.
 
-1. Add the provider to `opencode.json`
-2. Set the appropriate API key in `.env`
-3. Either change the default model or use dynamic switching per-prompt
+---
 
 ## Project Structure
 
@@ -427,60 +571,47 @@ opencode-mcp/
 │       ├── pty.ts            # Terminal sessions
 │       └── instructions.ts   # Static workflow guide
 ├── skills/
-│   ├── opencode/SKILL.md     # Delegation guidance skill
-│   └── opencode-build/SKILL.md  # Team build pipeline skill
+│   ├── opencode/SKILL.md     # /opencode — delegation guidance
+│   └── opencode-build/SKILL.md  # /opencode-build — team build pipeline
 ├── scripts/
-│   ├── postinstall.mjs       # Post-install verification
+│   ├── postinstall.mjs       # Post-install environment check
 │   └── install-skills.mjs    # Interactive skill installer
-├── examples/                  # Demo apps built with the tool
-├── start.sh                   # Startup script (manages opencode serve lifecycle)
-├── opencode.json              # OpenCode agent/provider config
+├── examples/                  # Demo apps (open index.html in browser)
+├── start.sh                   # Startup script (manages opencode serve)
+├── opencode.json              # Default model/provider config
 ├── package.json
 ├── tsconfig.json
 └── .env.example
 ```
 
 Every tool file follows the same pattern:
-- Import `McpServer`, `z`, and `getClient`
-- Export `registerXTool(server: McpServer)`
-- Define a Zod schema with an `action` enum
-- Switch on action, call the SDK, return JSON
-- Wrap errors with `isError: true`
 
-## Claude Code Skills
+```mermaid
+graph LR
+    A["Import McpServer,<br/>z, getClient"] --> B["Export<br/>registerXTool()"]
+    B --> C["Zod schema<br/>with action enum"]
+    C --> D["Switch on action"]
+    D --> E["Call SDK,<br/>return JSON"]
+    D --> F["Catch errors<br/>with isError: true"]
+    style A fill:#f8f9fa,color:#333,stroke:#ddd
+    style C fill:#00CEC9,color:#fff,stroke:none
+    style E fill:#00B894,color:#fff,stroke:none
+    style F fill:#E17055,color:#fff,stroke:none
+```
 
-The project includes two optional skills (slash commands) that teach Claude how to use the MCP tools effectively. Install them during `npm run setup` or anytime with `npm run install-skills`.
-
-### `/opencode` — Delegation Guidance
-
-An always-on advisor that helps Claude decide when to delegate code generation to OpenCode vs write directly. It provides:
-
-- **Decision heuristic** — delegate when creating new files, writing boilerplate, generating tests, or scaffolding features (>30 lines). Write directly for small edits, config changes, or security-critical code.
-- **Prompt engineering** — how to write specific prompts that produce good output from fast models.
-- **Review checklist** — what to look for in generated code (operator precedence bugs, XSS, missing accessibility, etc.).
-- **Session management** — reuse sessions, fork for alternatives, summarize long sessions.
-
-### `/opencode-build` — Team Build Pipeline
-
-Runs the full "fast draft + Claude polish" workflow end to end:
-
-1. **Spec** — Claude writes a detailed specification from your description
-2. **Draft** — Sends to gpt-oss-120b on Cerebras (~2s generation)
-3. **Review** — Claude reads every line, identifies bugs, security issues, UX gaps
-4. **Polish** — Claude rewrites to production quality (animations, accessibility, responsive design)
-
-Just describe what you want and the pipeline handles the rest.
+---
 
 ## Development
 
 ```bash
-npm run dev    # Watch mode — recompiles TypeScript on save
-npm run build  # One-time build
-npm start      # Run MCP server (requires opencode serve running separately)
-./start.sh     # Run both opencode serve and MCP server
+npm run dev            # Watch mode — recompiles on save
+npm run build          # One-time build
+npm start              # Run MCP server (needs opencode serve running)
+./start.sh             # Run both opencode serve + MCP server
+npm run install-skills # Install /opencode and /opencode-build to Claude Code
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details on adding tools, extending the SDK coverage, and submitting examples.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on adding tools, extending SDK coverage, and submitting examples.
 
 ## License
 
