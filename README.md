@@ -164,35 +164,31 @@ graph LR
     style E fill:#00CEC9,color:#fff,stroke:none
 ```
 
-`npm install` automatically downloads the OpenCode CLI binary for your platform via the `opencode-ai` npm package. No separate install needed.
+The setup script handles everything in one step:
 
-The setup script will prompt you to install skills and the MCP server config — choose global (`~/.claude/`), project-only (`.mcp.json`), or both. This is the only step needed to connect Claude Code to OpenCode.
+1. **Installs dependencies** — downloads the OpenCode CLI binary for your platform via `opencode-ai`
+2. **Builds the project** — compiles TypeScript to `dist/`
+3. **Runs environment check** — verifies OpenCode CLI, `.env`, and build output
+4. **Configures Claude Code** — prompts you to install the MCP server config + skills
+
+You'll be asked where to install:
+
+```
+  Where would you like to install?
+
+  1. Global (~/.claude/ — available in all projects)
+  2. This project only (.mcp.json + .claude/skills/)
+  3. Both
+  4. Cancel
+```
+
+After setup completes, **restart Claude Code** to pick up the new MCP server.
 
 > **Already have OpenCode installed globally?** That works too. `start.sh` checks `node_modules/.bin/opencode` first, then falls back to your global install.
 
-### How `start.sh` Works
-
-`start.sh` (configured automatically by the setup script) handles the full lifecycle:
-
-```mermaid
-graph TD
-    A["start.sh"] --> B{"opencode binary<br/>found?"}
-    B -->|"node_modules/.bin"| C["Use local"]
-    B -->|"global PATH"| C
-    B -->|"not found"| X["Error: install instructions"]
-    C --> D{"opencode serve<br/>already running?"}
-    D -->|"yes"| F["Launch MCP server"]
-    D -->|"no"| E["Start opencode serve<br/>in background"]
-    E --> G["Wait for ready<br/>(up to 10s)"]
-    G --> F
-    F --> H["stdio transport<br/>to Claude Code"]
-    style X fill:#E17055,color:#fff,stroke:none
-    style H fill:#00B894,color:#fff,stroke:none
-```
-
 ### Verify It Works
 
-In Claude Code:
+After restarting Claude Code, try:
 
 ```
 You: "Use opencode to create a hello world HTML file at examples/test/index.html"
@@ -204,27 +200,166 @@ Claude will:
 4. Report back
 ```
 
+If Claude doesn't recognize `opencode_session`, the MCP server isn't connected. See [Managing the MCP Server](#managing-the-mcp-server) below.
+
+---
+
+## Managing the MCP Server
+
+The setup script configures the MCP server automatically, but you can also add, remove, or move the config manually.
+
+### How the MCP Config Works
+
+Claude Code discovers MCP servers from two config files. The setup script writes to one or both depending on your choice:
+
+```mermaid
+graph TD
+    CC["Claude Code starts"] --> G{"Check global config"}
+    CC --> L{"Check project config"}
+    G -->|"~/.claude/settings.json"| GF["mcpServers.opencode"]
+    L -->|".mcp.json in repo root"| LF["mcpServers.opencode"]
+    GF --> S["start.sh"]
+    LF --> S
+    S --> OC["OpenCode serve<br/>(port 4096)"]
+    S --> MCP["MCP server<br/>(stdio to Claude Code)"]
+    OC --> I["Cerebras / any provider"]
+    style CC fill:#6C5CE7,color:#fff,stroke:none
+    style S fill:#00CEC9,color:#fff,stroke:none
+    style MCP fill:#00B894,color:#fff,stroke:none
+    style I fill:#FDCB6E,color:#333,stroke:none
+```
+
+| Install type | Config file | Scope |
+|---|---|---|
+| **Global** | `~/.claude/settings.json` | Every Claude Code session on your machine |
+| **Project** | `.mcp.json` (repo root) | Only when working in this repo |
+
+Both files use the same format — a JSON object with `mcpServers.opencode.command` pointing to the absolute path of `start.sh`.
+
+### Add Manually
+
+If you skipped the setup prompt, or want to add the MCP server to a different location:
+
+**Global** — edit `~/.claude/settings.json` and add the `mcpServers` key (keep your existing settings):
+
+```json
+{
+  "permissions": { ... },
+  "mcpServers": {
+    "opencode": {
+      "command": "/absolute/path/to/opencode-mcp/start.sh"
+    }
+  }
+}
+```
+
+**Project** — create or edit `.mcp.json` in your repo root:
+
+```json
+{
+  "mcpServers": {
+    "opencode": {
+      "command": "/absolute/path/to/opencode-mcp/start.sh"
+    }
+  }
+}
+```
+
+> **Important:** The `command` must be an absolute path to `start.sh`. Relative paths won't work because Claude Code doesn't resolve them from the MCP project directory.
+
+Restart Claude Code after editing either file.
+
+### Remove the MCP Server
+
+To disconnect OpenCode from Claude Code, remove the `opencode` entry from whichever config file has it:
+
+**Global** — edit `~/.claude/settings.json` and delete the `"opencode": { ... }` block from `mcpServers`. If `opencode` was the only MCP server, you can delete the entire `mcpServers` key.
+
+**Project** — delete `.mcp.json`, or edit it to remove the `opencode` entry.
+
+```mermaid
+graph LR
+    R["Want to remove?"] --> RG["Global: edit ~/.claude/settings.json"]
+    R --> RL["Project: delete .mcp.json"]
+    RG --> D1["Delete mcpServers.opencode"]
+    RL --> D2["Or edit out the opencode entry"]
+    D1 --> RS["Restart Claude Code"]
+    D2 --> RS
+    style R fill:#E17055,color:#fff,stroke:none
+    style RS fill:#00B894,color:#fff,stroke:none
+```
+
+Restart Claude Code after removing.
+
+### Move Between Global and Project
+
+To move from global to project-only (or vice versa), run the setup script again:
+
+```bash
+npm run install-skills
+```
+
+It will detect the existing config and ask whether to overwrite. Choose your new target, then manually remove the old config from the other location.
+
+### Troubleshooting
+
+```mermaid
+graph TD
+    P["MCP not working?"] --> C1{"opencode_session<br/>recognized?"}
+    C1 -->|"No"| F1["Config not loaded"]
+    C1 -->|"Yes but errors"| C2{"Server starts?"}
+    F1 --> FIX1["Check config file exists<br/>and path to start.sh is correct"]
+    FIX1 --> FIX1a["Restart Claude Code"]
+    C2 -->|"No"| F2["OpenCode CLI missing<br/>or not built"]
+    C2 -->|"Yes"| F3["API key or provider issue"]
+    F2 --> FIX2["Run: npm run setup"]
+    F3 --> FIX3["Check .env has your API key"]
+    style P fill:#E17055,color:#fff,stroke:none
+    style FIX1a fill:#00B894,color:#fff,stroke:none
+    style FIX2 fill:#00B894,color:#fff,stroke:none
+    style FIX3 fill:#00B894,color:#fff,stroke:none
+```
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Claude doesn't recognize `opencode_session` | MCP config not loaded | Check config file, restart Claude Code |
+| `start.sh` errors on launch | Project not built | `npm run build` |
+| `opencode not found` in start.sh | CLI not installed | `npm install` in the project directory |
+| Session creates but prompts fail | API key missing or invalid | Check `.env` and provider credentials |
+| Port 4096 already in use | Another OpenCode instance running | Kill it or set `OPENCODE_PORT` to a different port |
+
+### How `start.sh` Works
+
+`start.sh` is the entry point Claude Code calls. It handles the full server lifecycle automatically:
+
+```mermaid
+graph TD
+    A["Claude Code calls start.sh"] --> B{"opencode binary<br/>found?"}
+    B -->|"node_modules/.bin"| C["Use local"]
+    B -->|"global PATH"| C
+    B -->|"not found"| X["Error: install instructions"]
+    C --> D{"opencode serve<br/>already running<br/>on port 4096?"}
+    D -->|"yes"| F["Launch MCP server"]
+    D -->|"no"| E["Start opencode serve<br/>in background"]
+    E --> G["Wait for ready<br/>(up to 10s)"]
+    G --> F
+    F --> H["stdio transport<br/>to Claude Code"]
+    style X fill:#E17055,color:#fff,stroke:none
+    style H fill:#00B894,color:#fff,stroke:none
+```
+
+You don't need to start any servers manually. `start.sh` boots the OpenCode server on demand and connects the MCP bridge — all triggered automatically when Claude Code starts.
+
 ---
 
 ## Claude Code Skills
 
 The project includes two optional skills (slash commands) that teach Claude how to use the MCP tools effectively.
 
-Skills and the MCP server config are installed together during `npm run setup`, or anytime with:
+Skills are installed alongside the MCP config during `npm run setup`, or anytime with:
 
 ```bash
 npm run install-skills
-```
-
-The installer prompts you to choose where to install:
-
-```
-  Where would you like to install?
-
-  1. Global (~/.claude/ — available in all projects)
-  2. This project only (.mcp.json + .claude/skills/)
-  3. Both
-  4. Cancel
 ```
 
 ### `/opencode` — Delegation Guidance
@@ -564,8 +699,8 @@ opencode-mcp/
 │   ├── opencode/SKILL.md     # /opencode — delegation guidance
 │   └── opencode-build/SKILL.md  # /opencode-build — team build pipeline
 ├── scripts/
-│   ├── postinstall.mjs       # Post-install environment check
-│   └── install-skills.mjs    # Interactive skill installer
+│   ├── postinstall.mjs       # Post-install environment check (inc. MCP config)
+│   └── install-skills.mjs    # Unified setup: skills + MCP server config
 ├── examples/                  # Demo apps (open index.html in browser)
 ├── start.sh                   # Startup script (manages opencode serve)
 ├── opencode.json              # Default model/provider config
