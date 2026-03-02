@@ -151,7 +151,7 @@ Claude picks the right model for each task — fast model for boilerplate, reaso
 git clone https://github.com/nkulavic/opencode-mcp.git
 cd opencode-mcp
 cp .env.example .env   # Add your API key
-npm run setup          # Installs deps, builds, verifies, and prompts for skill install
+npm run setup          # Installs deps, builds, verifies, configures MCP + skills
 ```
 
 ```mermaid
@@ -159,30 +159,20 @@ graph LR
     A["npm run setup"] --> B["npm install<br/>(+ OpenCode CLI)"]
     B --> C["tsc build"]
     C --> D["Environment check"]
-    D --> E["Install skills?<br/>(interactive prompt)"]
+    D --> E["Configure skills<br/>+ MCP server"]
     style A fill:#6C5CE7,color:#fff,stroke:none
     style E fill:#00CEC9,color:#fff,stroke:none
 ```
 
 `npm install` automatically downloads the OpenCode CLI binary for your platform via the `opencode-ai` npm package. No separate install needed.
 
+The setup script will prompt you to install skills and the MCP server config — choose global (`~/.claude/`), project-only (`.mcp.json`), or both. This is the only step needed to connect Claude Code to OpenCode.
+
 > **Already have OpenCode installed globally?** That works too. `start.sh` checks `node_modules/.bin/opencode` first, then falls back to your global install.
 
-### Add to Claude Code
+### How `start.sh` Works
 
-Add to your Claude Code MCP settings (`~/.claude/settings.json` or project `.mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "opencode": {
-      "command": "/absolute/path/to/opencode-mcp/start.sh"
-    }
-  }
-}
-```
-
-`start.sh` handles the full lifecycle:
+`start.sh` (configured automatically by the setup script) handles the full lifecycle:
 
 ```mermaid
 graph TD
@@ -220,7 +210,7 @@ Claude will:
 
 The project includes two optional skills (slash commands) that teach Claude how to use the MCP tools effectively.
 
-Install during setup or anytime with:
+Skills and the MCP server config are installed together during `npm run setup`, or anytime with:
 
 ```bash
 npm run install-skills
@@ -229,10 +219,10 @@ npm run install-skills
 The installer prompts you to choose where to install:
 
 ```
-  Where would you like to install the skills?
+  Where would you like to install?
 
-  1. Global (~/.claude/skills/ — available in all projects)
-  2. This project only (.claude/skills/ — only this repo)
+  1. Global (~/.claude/ — available in all projects)
+  2. This project only (.mcp.json + .claude/skills/)
   3. Both
   4. Cancel
 ```
@@ -608,7 +598,7 @@ npm run dev            # Watch mode — recompiles on save
 npm run build          # One-time build
 npm start              # Run MCP server (needs opencode serve running)
 ./start.sh             # Run both opencode serve + MCP server
-npm run install-skills # Install /opencode and /opencode-build to Claude Code
+npm run install-skills # Configure MCP server + install skills for Claude Code
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on adding tools, extending SDK coverage, and submitting examples.

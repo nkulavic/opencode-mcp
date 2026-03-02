@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -75,11 +75,33 @@ if (skillsInstalled) {
   console.log(dim("    npm run install-skills"));
 }
 
-// 5. Summary
+// 5. Check MCP server config
+const claudeSettings = join(process.env.HOME || "~", ".claude", "settings.json");
+const localMcpJson = join(root, ".mcp.json");
+
+let mcpConfigured = false;
+try {
+  const settings = JSON.parse(readFileSync(claudeSettings, "utf8"));
+  if (settings?.mcpServers?.opencode) mcpConfigured = true;
+} catch {}
+if (!mcpConfigured) {
+  try {
+    const local = JSON.parse(readFileSync(localMcpJson, "utf8"));
+    if (local?.mcpServers?.opencode) mcpConfigured = true;
+  } catch {}
+}
+
+if (mcpConfigured) {
+  console.log(green("  ✓") + " MCP server configured for Claude Code");
+} else {
+  console.log(yellow("  !") + " MCP server not configured — run:");
+  console.log(dim("    npm run install-skills"));
+}
+
+// 6. Summary
 console.log("");
-if (opencodeFound && envExists && distExists) {
-  console.log(green("  Ready to go!") + " Add to Claude Code:");
-  console.log(dim(`    { "mcpServers": { "opencode": { "command": "${join(root, "start.sh")}" } } }`));
+if (opencodeFound && envExists && distExists && mcpConfigured) {
+  console.log(green("  Ready to go!"));
   if (!skillsInstalled) {
     console.log("");
     console.log(dim("  Optional: npm run install-skills  (adds /opencode and /opencode-build slash commands)"));
@@ -89,7 +111,6 @@ if (opencodeFound && envExists && distExists) {
   let step = 1;
   if (!envExists) { console.log(dim(`    ${step++}. cp .env.example .env && add your API key`)); }
   if (!distExists) { console.log(dim(`    ${step++}. npm run build`)); }
-  console.log(dim(`    ${step++}. Add start.sh to your Claude Code MCP config`));
-  if (!skillsInstalled) { console.log(dim(`    ${step}. npm run install-skills  (optional — adds slash commands)`)); }
+  if (!mcpConfigured || !skillsInstalled) { console.log(dim(`    ${step++}. npm run install-skills  (configures MCP server + skills)`)); }
 }
 console.log("");
